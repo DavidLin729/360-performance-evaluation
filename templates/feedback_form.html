@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>績效評估表單 - 360度績效評估系統</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f9fc;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #1a1a1a;
+            margin: 0;
+        }
+
+        .form-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        .form-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e1e4e8;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e1e4e8;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            color: #1a1a1a;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4b5563;
+            font-weight: 500;
+        }
+
+        .rating-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .rating-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .rating-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            font-size: 1em;
+            font-family: inherit;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #2d7ff9;
+            box-shadow: 0 0 0 3px rgba(45, 127, 249, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .submit-button {
+            padding: 12px 24px;
+            background-color: #2d7ff9;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .submit-button:hover {
+            background-color: #1a73e8;
+        }
+
+        .cancel-button {
+            padding: 12px 24px;
+            background-color: #f3f4f6;
+            color: #4b5563;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+
+        .cancel-button:hover {
+            background-color: #e5e7eb;
+        }
+
+        .help-text {
+            font-size: 0.9em;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>績效評估表單</h1>
+        </div>
+
+        <div class="form-container">
+            <div class="form-header">
+                <h2>評估對象：{{ User.query.get(feedback.target_id).username }}</h2>
+                <p class="help-text">請根據以下各項指標，對受評者進行1-5分的評分（1分最低，5分最高）</p>
+            </div>
+
+            <form method="POST">
+                <!-- 工作能力評估 -->
+                <div class="section">
+                    <h3 class="section-title">工作能力評估</h3>
+                    <div class="form-group">
+                        <label>工作品質</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="work_quality" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>工作效率</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="work_efficiency" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>工作可靠性</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="work_reliability" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 領導力評估 -->
+                <div class="section">
+                    <h3 class="section-title">領導力評估</h3>
+                    <div class="form-group">
+                        <label>領導能力</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="leadership" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>決策能力</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="decision_making" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>團隊管理</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="team_management" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 團隊合作 -->
+                <div class="section">
+                    <h3 class="section-title">團隊合作</h3>
+                    <div class="form-group">
+                        <label>協作能力</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="collaboration" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>人際關係</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="interpersonal_skills" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>衝突處理</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="conflict_resolution" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 溝通能力 -->
+                <div class="section">
+                    <h3 class="section-title">溝通能力</h3>
+                    <div class="form-group">
+                        <label>溝通技巧</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="communication_skills" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>表達能力</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="presentation_skills" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>傾聽能力</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="listening_skills" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 專業知識 -->
+                <div class="section">
+                    <h3 class="section-title">專業知識</h3>
+                    <div class="form-group">
+                        <label>技術知識</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="technical_knowledge" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>產業知識</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="industry_knowledge" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>問題解決</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="problem_solving" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 工作態度 -->
+                <div class="section">
+                    <h3 class="section-title">工作態度</h3>
+                    <div class="form-group">
+                        <label>工作態度</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="work_attitude" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>主動性</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="initiative" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>責任感</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="responsibility" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 創新思維 -->
+                <div class="section">
+                    <h3 class="section-title">創新思維</h3>
+                    <div class="form-group">
+                        <label>創新能力</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="innovation" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>創造力</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="creativity" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>適應能力</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="adaptability" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 問題解決能力 -->
+                <div class="section">
+                    <h3 class="section-title">問題解決能力</h3>
+                    <div class="form-group">
+                        <label>分析思維</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="analytical_thinking" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>解決方案實施</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="solution_implementation" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>風險管理</label>
+                        <div class="rating-group">
+                            <div class="rating-options">
+                                {% for i in range(1, 6) %}
+                                <div class="rating-option">
+                                    <input type="radio" name="risk_management" value="{{ i }}" required>
+                                    <span>{{ i }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 文字回饋 -->
+                <div class="section">
+                    <h3 class="section-title">文字回饋</h3>
+                    <div class="form-group">
+                        <label>優點</label>
+                        <textarea name="strengths" placeholder="請描述受評者的主要優點..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>需要改進的地方</label>
+                        <textarea name="improvements" placeholder="請描述受評者需要改進的地方..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>建議</label>
+                        <textarea name="suggestions" placeholder="請提供具體的改進建議..."></textarea>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="submit-button">提交評估</button>
+                    <a href="{{ url_for('index') }}" class="cancel-button">返回</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html> 
