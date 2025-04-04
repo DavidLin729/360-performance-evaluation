@@ -70,19 +70,70 @@
 
         .rating-group {
             display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .rating-options {
-            display: flex;
+            flex-direction: column;
             gap: 10px;
+            width: 100%;
         }
 
-        .rating-option {
+        .rating-slider-container {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .rating-slider {
+            flex-grow: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            background: #e1e4e8;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .rating-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #2d7ff9;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .rating-slider::-webkit-slider-thumb:hover {
+            background: #1a73e8;
+        }
+
+        .rating-value {
+            width: 40px;
+            text-align: center;
+            font-weight: 500;
+            color: #1a73e8;
+        }
+
+        .rating-description {
+            font-size: 0.9em;
+            color: #6b7280;
+            margin-top: 5px;
+            padding: 8px;
+            background: #f8fafc;
+            border-radius: 4px;
+            border-left: 3px solid #2d7ff9;
+        }
+
+        .rating-levels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.8em;
+            color: #6b7280;
+        }
+
+        .rating-level {
+            text-align: center;
+            flex: 1;
         }
 
         textarea {
@@ -168,39 +219,57 @@
                     <div class="form-group">
                         <label>工作品質</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="work_quality" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="work_quality" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'work_quality_desc')">
+                                <span class="rating-value" id="work_quality_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="work_quality_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>工作效率</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="work_efficiency" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="work_efficiency" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'work_efficiency_desc')">
+                                <span class="rating-value" id="work_efficiency_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="work_efficiency_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>工作可靠性</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="work_reliability" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="work_reliability" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'work_reliability_desc')">
+                                <span class="rating-value" id="work_reliability_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="work_reliability_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
@@ -212,39 +281,57 @@
                     <div class="form-group">
                         <label>領導能力</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="leadership" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="leadership" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'leadership_desc')">
+                                <span class="rating-value" id="leadership_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="leadership_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>決策能力</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="decision_making" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="decision_making" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'decision_making_desc')">
+                                <span class="rating-value" id="decision_making_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="decision_making_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>團隊管理</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="team_management" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="team_management" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'team_management_desc')">
+                                <span class="rating-value" id="team_management_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="team_management_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
@@ -256,39 +343,57 @@
                     <div class="form-group">
                         <label>協作能力</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="collaboration" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="collaboration" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'collaboration_desc')">
+                                <span class="rating-value" id="collaboration_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="collaboration_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>人際關係</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="interpersonal_skills" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="interpersonal_skills" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'interpersonal_skills_desc')">
+                                <span class="rating-value" id="interpersonal_skills_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="interpersonal_skills_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>衝突處理</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="conflict_resolution" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="conflict_resolution" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'conflict_resolution_desc')">
+                                <span class="rating-value" id="conflict_resolution_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="conflict_resolution_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
@@ -300,39 +405,57 @@
                     <div class="form-group">
                         <label>溝通技巧</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="communication_skills" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="communication_skills" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'communication_skills_desc')">
+                                <span class="rating-value" id="communication_skills_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="communication_skills_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>表達能力</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="presentation_skills" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="presentation_skills" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'presentation_skills_desc')">
+                                <span class="rating-value" id="presentation_skills_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="presentation_skills_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>傾聽能力</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="listening_skills" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="listening_skills" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'listening_skills_desc')">
+                                <span class="rating-value" id="listening_skills_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="listening_skills_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
@@ -344,39 +467,57 @@
                     <div class="form-group">
                         <label>技術知識</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="technical_knowledge" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="technical_knowledge" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'technical_knowledge_desc')">
+                                <span class="rating-value" id="technical_knowledge_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="technical_knowledge_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>產業知識</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="industry_knowledge" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="industry_knowledge" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'industry_knowledge_desc')">
+                                <span class="rating-value" id="industry_knowledge_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="industry_knowledge_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>問題解決</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="problem_solving" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="problem_solving" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'problem_solving_desc')">
+                                <span class="rating-value" id="problem_solving_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="problem_solving_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
@@ -388,39 +529,57 @@
                     <div class="form-group">
                         <label>工作態度</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="work_attitude" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="work_attitude" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'work_attitude_desc')">
+                                <span class="rating-value" id="work_attitude_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="work_attitude_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>主動性</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="initiative" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="initiative" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'initiative_desc')">
+                                <span class="rating-value" id="initiative_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="initiative_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>責任感</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="responsibility" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="responsibility" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'responsibility_desc')">
+                                <span class="rating-value" id="responsibility_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="responsibility_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
@@ -432,39 +591,57 @@
                     <div class="form-group">
                         <label>創新能力</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="innovation" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="innovation" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'innovation_desc')">
+                                <span class="rating-value" id="innovation_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="innovation_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>創造力</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="creativity" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="creativity" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'creativity_desc')">
+                                <span class="rating-value" id="creativity_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="creativity_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>適應能力</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="adaptability" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="adaptability" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'adaptability_desc')">
+                                <span class="rating-value" id="adaptability_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="adaptability_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
@@ -476,39 +653,57 @@
                     <div class="form-group">
                         <label>分析思維</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="analytical_thinking" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="analytical_thinking" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'analytical_thinking_desc')">
+                                <span class="rating-value" id="analytical_thinking_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="analytical_thinking_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>解決方案實施</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="solution_implementation" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="solution_implementation" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'solution_implementation_desc')">
+                                <span class="rating-value" id="solution_implementation_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="solution_implementation_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>風險管理</label>
                         <div class="rating-group">
-                            <div class="rating-options">
-                                {% for i in range(1, 6) %}
-                                <div class="rating-option">
-                                    <input type="radio" name="risk_management" value="{{ i }}" required>
-                                    <span>{{ i }}</span>
-                                </div>
-                                {% endfor %}
+                            <div class="rating-slider-container">
+                                <input type="range" class="rating-slider" name="risk_management" min="1" max="5" step="1" value="3" oninput="updateRatingDescription(this, 'risk_management_desc')">
+                                <span class="rating-value" id="risk_management_value">3</span>
+                            </div>
+                            <div class="rating-levels">
+                                <span class="rating-level">需要改進</span>
+                                <span class="rating-level">尚可</span>
+                                <span class="rating-level">符合期望</span>
+                                <span class="rating-level">表現優異</span>
+                                <span class="rating-level">極為出色</span>
+                            </div>
+                            <div class="rating-description" id="risk_management_desc">
+                                符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質
                             </div>
                         </div>
                     </div>
@@ -538,5 +733,223 @@
             </form>
         </div>
     </div>
+
+    <script>
+        const ratingDescriptions = {
+            work_quality: {
+                1: "需要改進：工作成果經常出現錯誤，品質不穩定",
+                2: "尚可：工作成果偶有疏失，品質尚待提升",
+                3: "符合期望：工作成果大致符合要求，偶有小錯但不影響整體品質",
+                4: "表現優異：工作成果品質優良，很少出現錯誤",
+                5: "極為出色：工作成果始終保持最高品質，堪稱典範"
+            },
+            work_efficiency: {
+                1: "需要改進：工作效率低，經常延遲完成工作",
+                2: "尚可：工作效率中等，偶有延遲",
+                3: "符合期望：工作效率符合要求，偶有延遲",
+                4: "表現優異：工作效率高，很少延遲",
+                5: "極為出色：工作效率極高，從不延遲"
+            },
+            work_reliability: {
+                1: "需要改進：工作可靠性低，經常出現錯誤",
+                2: "尚可：工作可靠性中等，偶有錯誤",
+                3: "符合期望：工作可靠性符合要求，偶有錯誤",
+                4: "表現優異：工作可靠性高，很少出現錯誤",
+                5: "極為出色：工作可靠性極高，從不出現錯誤"
+            },
+            leadership: {
+                1: "需要改進：領導能力不足，無法有效帶領團隊",
+                2: "尚可：領導能力中等，偶有成效",
+                3: "符合期望：領導能力符合要求，偶有成效",
+                4: "表現優異：領導能力優異，成效顯著",
+                5: "極為出色：領導能力極佳，成效卓越"
+            },
+            decision_making: {
+                1: "需要改進：決策能力不足，經常做出錯誤決定",
+                2: "尚可：決策能力中等，偶有錯誤決定",
+                3: "符合期望：決策能力符合要求，偶有錯誤決定",
+                4: "表現優異：決策能力優異，很少做出錯誤決定",
+                5: "極為出色：決策能力極佳，從不做出錯誤決定"
+            },
+            team_management: {
+                1: "需要改進：團隊管理能力不足，無法有效管理團隊",
+                2: "尚可：團隊管理能力中等，偶有成效",
+                3: "符合期望：團隊管理能力符合要求，偶有成效",
+                4: "表現優異：團隊管理能力優異，成效顯著",
+                5: "極為出色：團隊管理能力極佳，成效卓越"
+            },
+            collaboration: {
+                1: "需要改進：協作能力不足，無法有效與他人合作",
+                2: "尚可：協作能力中等，偶有合作",
+                3: "符合期望：協作能力符合要求，偶有合作",
+                4: "表現優異：協作能力優異，經常與他人合作",
+                5: "極為出色：協作能力極佳，總是與他人合作"
+            },
+            interpersonal_skills: {
+                1: "需要改進：人際關係處理能力不足，無法有效與他人溝通",
+                2: "尚可：人際關係處理能力中等，偶有溝通",
+                3: "符合期望：人際關係處理能力符合要求，偶有溝通",
+                4: "表現優異：人際關係處理能力優異，經常與他人溝通",
+                5: "極為出色：人際關係處理能力極佳，總是與他人溝通"
+            },
+            conflict_resolution: {
+                1: "需要改進：衝突處理能力不足，無法有效解決衝突",
+                2: "尚可：衝突處理能力中等，偶有解決",
+                3: "符合期望：衝突處理能力符合要求，偶有解決",
+                4: "表現優異：衝突處理能力優異，很少出現衝突",
+                5: "極為出色：衝突處理能力極佳，從不出現衝突"
+            },
+            communication_skills: {
+                1: "需要改進：溝通技巧不足，無法有效與他人溝通",
+                2: "尚可：溝通技巧中等，偶有溝通",
+                3: "符合期望：溝通技巧符合要求，偶有溝通",
+                4: "表現優異：溝通技巧優異，經常與他人溝通",
+                5: "極為出色：溝通技巧極佳，總是與他人溝通"
+            },
+            presentation_skills: {
+                1: "需要改進：表達能力不足，無法有效表達想法",
+                2: "尚可：表達能力中等，偶有表達",
+                3: "符合期望：表達能力符合要求，偶有表達",
+                4: "表現優異：表達能力優異，經常表達想法",
+                5: "極為出色：表達能力極佳，總是表達想法"
+            },
+            listening_skills: {
+                1: "需要改進：傾聽能力不足，無法有效聆聽他人意見",
+                2: "尚可：傾聽能力中等，偶有聆聽",
+                3: "符合期望：傾聽能力符合要求，偶有聆聽",
+                4: "表現優異：傾聽能力優異，經常聆聽他人意見",
+                5: "極為出色：傾聽能力極佳，總是聆聽他人意見"
+            },
+            technical_knowledge: {
+                1: "需要改進：技術知識不足，無法有效解決問題",
+                2: "尚可：技術知識中等，偶有解決",
+                3: "符合期望：技術知識符合要求，偶有解決",
+                4: "表現優異：技術知識優異，很少出現問題",
+                5: "極為出色：技術知識極佳，從不出現問題"
+            },
+            industry_knowledge: {
+                1: "需要改進：產業知識不足，無法有效應用於工作",
+                2: "尚可：產業知識中等，偶有應用",
+                3: "符合期望：產業知識符合要求，偶有應用",
+                4: "表現優異：產業知識優異，經常應用於工作",
+                5: "極為出色：產業知識極佳，總是應用於工作"
+            },
+            problem_solving: {
+                1: "需要改進：問題解決能力不足，無法有效解決問題",
+                2: "尚可：問題解決能力中等，偶有解決",
+                3: "符合期望：問題解決能力符合要求，偶有解決",
+                4: "表現優異：問題解決能力優異，很少出現問題",
+                5: "極為出色：問題解決能力極佳，從不出現問題"
+            },
+            work_attitude: {
+                1: "需要改進：工作態度不足，無法有效完成工作",
+                2: "尚可：工作態度中等，偶有完成",
+                3: "符合期望：工作態度符合要求，偶有完成",
+                4: "表現優異：工作態度優異，經常完成工作",
+                5: "極為出色：工作態度極佳，總是完成工作"
+            },
+            initiative: {
+                1: "需要改進：主動性不足，無法有效主動完成工作",
+                2: "尚可：主動性中等，偶有主動",
+                3: "符合期望：主動性符合要求，偶有主動",
+                4: "表現優異：主動性優異，經常主動完成工作",
+                5: "極為出色：主動性極佳，總是主動完成工作"
+            },
+            responsibility: {
+                1: "需要改進：責任感不足，無法有效承擔責任",
+                2: "尚可：責任感中等，偶有承擔",
+                3: "符合期望：責任感符合要求，偶有承擔",
+                4: "表現優異：責任感優異，經常承擔責任",
+                5: "極為出色：責任感極佳，總是承擔責任"
+            },
+            innovation: {
+                1: "需要改進：創新能力不足，無法有效創新",
+                2: "尚可：創新能力中等，偶有創新",
+                3: "符合期望：創新能力符合要求，偶有創新",
+                4: "表現優異：創新能力優異，經常創新",
+                5: "極為出色：創新能力極佳，總是創新"
+            },
+            creativity: {
+                1: "需要改進：創造力不足，無法有效創造",
+                2: "尚可：創造力中等，偶有創造",
+                3: "符合期望：創造力符合要求，偶有創造",
+                4: "表現優異：創造力優異，經常創造",
+                5: "極為出色：創造力極佳，總是創造"
+            },
+            adaptability: {
+                1: "需要改進：適應能力不足，無法有效適應新環境",
+                2: "尚可：適應能力中等，偶有適應",
+                3: "符合期望：適應能力符合要求，偶有適應",
+                4: "表現優異：適應能力優異，經常適應新環境",
+                5: "極為出色：適應能力極佳，總是適應新環境"
+            },
+            analytical_thinking: {
+                1: "需要改進：分析思維不足，無法有效分析問題",
+                2: "尚可：分析思維中等，偶有分析",
+                3: "符合期望：分析思維符合要求，偶有分析",
+                4: "表現優異：分析思維優異，很少出現問題",
+                5: "極為出色：分析思維極佳，從不出現問題"
+            },
+            solution_implementation: {
+                1: "需要改進：解決方案實施不足，無法有效實施解決方案",
+                2: "尚可：解決方案實施中等，偶有實施",
+                3: "符合期望：解決方案實施符合要求，偶有實施",
+                4: "表現優異：解決方案實施優異，很少出現問題",
+                5: "極為出色：解決方案實施極佳，從不出現問題"
+            },
+            risk_management: {
+                1: "需要改進：風險管理不足，無法有效管理風險",
+                2: "尚可：風險管理中等，偶有管理",
+                3: "符合期望：風險管理符合要求，偶有管理",
+                4: "表現優異：風險管理優異，很少出現問題",
+                5: "極為出色：風險管理極佳，從不出現問題"
+            }
+        };
+
+        function updateRatingDescription(slider, descId) {
+            const value = slider.value;
+            const valueDisplay = slider.parentElement.querySelector('.rating-value');
+            valueDisplay.textContent = value;
+            
+            const descElement = document.getElementById(descId);
+            const category = slider.name;
+            if (ratingDescriptions[category] && ratingDescriptions[category][value]) {
+                descElement.textContent = ratingDescriptions[category][value];
+            }
+        }
+
+        // 為所有滑桿添加事件監聽器
+        document.addEventListener('DOMContentLoaded', function() {
+            const sliders = document.querySelectorAll('.rating-slider');
+            sliders.forEach(slider => {
+                const descId = slider.name + '_desc';
+                slider.addEventListener('input', () => updateRatingDescription(slider, descId));
+                // 初始化描述
+                updateRatingDescription(slider, descId);
+            });
+        });
+
+        // 自動保存功能
+        let autoSaveTimeout;
+        const form = document.querySelector('form');
+        const formInputs = form.querySelectorAll('input, textarea');
+
+        formInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                clearTimeout(autoSaveTimeout);
+                autoSaveTimeout = setTimeout(() => {
+                    const formData = new FormData(form);
+                    fetch(window.location.href, {
+                        method: 'POST',
+                        body: formData
+                    }).then(response => {
+                        if (response.ok) {
+                            console.log('自動保存成功');
+                        }
+                    });
+                }, 2000);
+            });
+        });
+    </script>
 </body>
 </html> 

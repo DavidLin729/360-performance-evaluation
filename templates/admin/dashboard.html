@@ -2,43 +2,128 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>管理後台</h2>
+    <h2>管理者儀表板</h2>
     
+    <!-- 統計分析卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">問卷統計與分析</h5>
+                    <p class="card-text">查看問卷填寫統計與分析報告</p>
+                    <a href="{{ url_for('statistics') }}" class="btn btn-primary">
+                        <i class="fas fa-chart-bar"></i> 統計分析
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">使用者管理</h5>
+                    <p class="card-text">管理系統使用者帳號</p>
+                    <a href="{{ url_for('create_user') }}" class="btn btn-primary">
+                        <i class="fas fa-users"></i> 管理使用者
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">問卷管理</h5>
+                    <p class="card-text">管理問卷與評估任務</p>
+                    <a href="{{ url_for('create_feedback') }}" class="btn btn-primary">
+                        <i class="fas fa-clipboard-list"></i> 管理問卷
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系統概況 -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">系統概況</h5>
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            總使用者數
+                            <span class="badge bg-primary rounded-pill">{{ total_users }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            待填寫問卷數
+                            <span class="badge bg-warning rounded-pill">{{ pending_feedback }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            已完成問卷數
+                            <span class="badge bg-success rounded-pill">{{ completed_feedback }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">最近活動</h5>
+                    <ul class="list-group">
+                        {% for activity in recent_activities %}
+                        <li class="list-group-item">
+                            {{ activity.description }}
+                            <small class="text-muted">{{ activity.timestamp }}</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 使用者管理區塊 -->
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0">使用者管理</h5>
         </div>
         <div class="card-body">
-            <a href="{{ url_for('create_user') }}" class="btn btn-primary">新增使用者</a>
+            <div class="row mb-3">
+                <div class="col">
+                    <a href="{{ url_for('create_user') }}" class="btn btn-primary">
+                        <i class="fas fa-users"></i> 管理使用者
+                    </a>
+                    <a href="{{ url_for('create_user') }}" class="btn btn-success">
+                        <i class="fas fa-user-plus"></i> 新增使用者
+                    </a>
+                    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#batchUploadModal">
+                        <i class="fas fa-file-upload"></i> 批次匯入
+                    </button>
+                </div>
+            </div>
             
-            <div class="table-responsive mt-4">
-                <table class="table">
+            <!-- 使用者列表 -->
+            <div class="table-responsive">
+                <table class="table table-striped">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>使用者名稱</th>
-                            <th>權限</th>
-                            <th>操作</th>
+                            <th>員工編號</th>
+                            <th>姓名</th>
+                            <th>部門</th>
+                            <th>職位</th>
+                            <th>狀態</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in users %}
                         <tr>
-                            <td>{{ user.id }}</td>
-                            <td>{{ user.username }}</td>
+                            <td>{{ user.employee_id }}</td>
+                            <td>{{ user.full_name }}</td>
+                            <td>{{ user.department.name if user.department else '未分配' }}</td>
+                            <td>{{ user.position }}</td>
                             <td>
-                                <span class="badge {% if user.is_admin %}bg-primary{% else %}bg-secondary{% endif %}">
-                                    {{ '管理員' if user.is_admin else '一般使用者' }}
+                                <span class="badge {% if user.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ '在職' if user.is_active else '離職' }}
                                 </span>
-                            </td>
-                            <td>
-                                <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">編輯</a>
-                                {% if user.username != 'David' %}
-                                <a href="{{ url_for('delete_user', user_id=user.id) }}" 
-                                   class="btn btn-sm btn-outline-danger"
-                                   onclick="return confirm('確定要刪除此使用者嗎？')">刪除</a>
-                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -48,23 +133,79 @@
         </div>
     </div>
 
-    <!-- 評估任務管理區塊 -->
+    <!-- 批次上傳Modal -->
+    <div class="modal fade" id="batchUploadModal" tabindex="-1" aria-labelledby="batchUploadModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="batchUploadModalLabel">批次匯入使用者</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <a href="{{ url_for('download_user_template') }}" class="btn btn-info w-100">
+                            <i class="fas fa-download"></i> 下載使用者範本
+                        </a>
+                    </div>
+                    <form action="{{ url_for('batch_upload_users') }}" method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">選擇Excel檔案</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".xlsx" required>
+                        </div>
+                        <div class="alert alert-info">
+                            <h6>Excel檔案格式說明：</h6>
+                            <p class="mb-1">必要欄位：</p>
+                            <ul class="mb-2">
+                                <li>username（使用者名稱）</li>
+                                <li>employee_id（員工編號）</li>
+                                <li>full_name（姓名）</li>
+                                <li>department（部門）</li>
+                                <li>position（職位）</li>
+                            </ul>
+                            <p class="mb-1">選填欄位：</p>
+                            <ul class="mb-0">
+                                <li>email（電子郵件）</li>
+                                <li>hire_date（到職日期，格式：YYYY-MM-DD）</li>
+                            </ul>
+                            <p class="mt-2 mb-0 text-danger">
+                                <i class="fas fa-info-circle"></i> 員工編號將作為使用者的預設密碼
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="submit" class="btn btn-primary">上傳</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 問卷管理區塊 -->
     <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">評估任務管理</h5>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">問卷管理</h5>
+            <div>
+                <a href="{{ url_for('create_feedback') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> 新增評估任務
+                </a>
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="fas fa-file-import"></i> 匯入評估任務
+                </button>
+            </div>
         </div>
         <div class="card-body">
-            <a href="{{ url_for('create_feedback') }}" class="btn btn-primary">新增評估任務</a>
-            
-            <div class="table-responsive mt-4">
-                <table class="table">
+            <div class="table-responsive">
+                <table class="table table-striped">
                     <thead>
                         <tr>
                             <th>ID</th>
                             <th>評估者</th>
                             <th>受評者</th>
+                            <th>部門</th>
                             <th>狀態</th>
                             <th>建立時間</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -73,12 +214,16 @@
                             <td>{{ feedback.id }}</td>
                             <td>{{ User.query.get(feedback.evaluator_id).username }}</td>
                             <td>{{ User.query.get(feedback.target_id).username }}</td>
+                            <td>{{ User.query.get(feedback.target_id).department.name if User.query.get(feedback.target_id).department else '未分配部門' }}</td>
                             <td>
                                 <span class="badge {% if feedback.status == 'completed' %}bg-success{% else %}bg-warning{% endif %}">
                                     {{ '已完成' if feedback.status == 'completed' else '待完成' }}
                                 </span>
                             </td>
                             <td>{{ feedback.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <a href="{{ url_for('feedback', feedback_id=feedback.id) }}" class="btn btn-sm btn-outline-primary">查看</a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -97,30 +242,46 @@
         </div>
     </div>
 
-    <!-- 批次匯入評估任務區塊 -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">批次匯入評估任務</h5>
-        </div>
-        <div class="card-body">
-            <form action="{{ url_for('upload_feedback_csv') }}" method="post" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label for="csv_file" class="form-label">選擇CSV檔案</label>
-                    <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+    <!-- 匯入CSV Modal -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">匯入評估任務</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <button type="submit" class="btn btn-primary">上傳CSV</button>
-            </form>
-
-            <div class="mt-4">
-                <h6>CSV檔案格式說明：</h6>
-                <p>請使用以下格式的CSV檔案：</p>
-                <ul>
-                    <li>第一列必須包含欄位名稱：evaluator_username, target_username</li>
-                    <li>evaluator_username：評估者的帳號</li>
-                    <li>target_username：受評者的帳號</li>
-                    <li>每行代表一個評估任務</li>
-                </ul>
-                <a href="{{ url_for('download_csv_template') }}" class="btn btn-secondary">下載範本</a>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <a href="{{ url_for('download_csv_template') }}" class="btn btn-info w-100">
+                            <i class="fas fa-download"></i> 下載評估任務範本
+                        </a>
+                    </div>
+                    <form action="{{ url_for('upload_feedback_csv') }}" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="csv_file" class="form-label">選擇CSV檔案</label>
+                            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                        </div>
+                        <div class="alert alert-info">
+                            <h6>CSV檔案格式說明：</h6>
+                            <p class="mb-1">必要欄位：</p>
+                            <ul class="mb-2">
+                                <li>evaluator_username（評估者帳號）</li>
+                                <li>target_username（受評者帳號）</li>
+                                <li>relationship（關係：supervisor/peer/subordinate）</li>
+                            </ul>
+                            <p class="mb-1">注意事項：</p>
+                            <ul class="mb-0">
+                                <li>評估者和受評者必須是系統中已存在的使用者</li>
+                                <li>關係必須是指定的三種之一</li>
+                                <li>同一評估者不能重複評估同一受評者</li>
+                            </ul>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="submit" class="btn btn-primary">上傳</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
