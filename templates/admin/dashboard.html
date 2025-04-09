@@ -1,109 +1,339 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>管理者儀表板</h2>
-    
-    <!-- 統計分析卡片 -->
+<div class="container-fluid mt-4">
+    <!-- 頁面標題 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>管理者儀表板</h2>
+    </div>
+
+    <!-- 主要統計卡片 -->
     <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
                 <div class="card-body">
-                    <h5 class="card-title">問卷統計與分析</h5>
-                    <p class="card-text">查看問卷填寫統計與分析報告</p>
-                    <a href="{{ url_for('statistics') }}" class="btn btn-primary">
-                        <i class="fas fa-chart-bar"></i> 統計分析
-                    </a>
+                    <h5 class="card-title">待評估任務</h5>
+                    <h2 class="card-text">{{ pending_tasks }}</h2>
+                    <p class="mb-0">個待處理</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
                 <div class="card-body">
-                    <h5 class="card-title">使用者管理</h5>
-                    <p class="card-text">管理系統使用者帳號</p>
-                    <a href="{{ url_for('create_user') }}" class="btn btn-primary">
-                        <i class="fas fa-users"></i> 管理使用者
-                    </a>
+                    <h5 class="card-title">已完成評估</h5>
+                    <h2 class="card-text">{{ completed_tasks }}</h2>
+                    <p class="mb-0">個已完成</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card">
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
                 <div class="card-body">
-                    <h5 class="card-title">問卷管理</h5>
-                    <p class="card-text">管理問卷與評估任務</p>
-                    <a href="{{ url_for('create_feedback') }}" class="btn btn-primary">
-                        <i class="fas fa-clipboard-list"></i> 管理問卷
-                    </a>
+                    <h5 class="card-title">進行中目標</h5>
+                    <h2 class="card-text">{{ active_goals }}</h2>
+                    <p class="mb-0">個執行中</p>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- 系統概況 -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
                 <div class="card-body">
-                    <h5 class="card-title">系統概況</h5>
-                    <ul class="list-group">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            總使用者數
-                            <span class="badge bg-primary rounded-pill">{{ total_users }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            待填寫問卷數
-                            <span class="badge bg-warning rounded-pill">{{ pending_feedback }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            已完成問卷數
-                            <span class="badge bg-success rounded-pill">{{ completed_feedback }}</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">最近活動</h5>
-                    <ul class="list-group">
-                        {% for activity in recent_activities %}
-                        <li class="list-group-item">
-                            {{ activity.description }}
-                            <small class="text-muted">{{ activity.timestamp }}</small>
-                        </li>
-                        {% endfor %}
-                    </ul>
+                    <h5 class="card-title">待改善項目</h5>
+                    <h2 class="card-text">{{ improvement_items }}</h2>
+                    <p class="mb-0">個待改善</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 使用者管理區塊 -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">使用者管理</h5>
+    <!-- 導航標籤 -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="performance-tab" data-bs-toggle="tab" href="#performance" role="tab">
+                <i class="fas fa-chart-line"></i> 績效管理
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="goal-tab" data-bs-toggle="tab" href="#goal" role="tab">
+                <i class="fas fa-bullseye"></i> 目標管理
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="feedback-tab" data-bs-toggle="tab" href="#feedback" role="tab">
+                <i class="fas fa-tasks"></i> 360問卷任務管理
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('statistics') }}">
+                <i class="fas fa-chart-bar"></i> 360問卷分析
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="user-tab" data-bs-toggle="tab" href="#user" role="tab">
+                <i class="fas fa-users"></i> 使用者管理
+            </a>
+        </li>
+    </ul>
+
+    <!-- 內容分頁 -->
+    <div class="tab-content">
+        <!-- 績效管理模組 -->
+        <div class="tab-pane fade show active" id="performance" role="tabpanel">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">績效趨勢分析</h5>
+                            <a href="{{ url_for('performance_trend') }}" class="btn btn-sm btn-primary">
+                                詳細資料
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="performanceTrendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">部門績效比較</h5>
+                            <a href="{{ url_for('department_comparison') }}" class="btn btn-sm btn-primary">
+                                詳細資料
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="departmentComparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">待改善項目追蹤</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>員工</th>
+                                            <th>部門</th>
+                                            <th>待改善項目</th>
+                                            <th>改善建議</th>
+                                            <th>狀態</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in improvement_list %}
+                                        <tr>
+                                            <td>{{ item.employee_name }}</td>
+                                            <td>{{ item.department }}</td>
+                                            <td>{{ item.item }}</td>
+                                            <td>{{ item.suggestion }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ item.status_color }}">
+                                                    {{ item.status }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-info">查看</button>
+                                            </td>
+                                        </tr>
+                {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="row mb-3">
-                <div class="col">
-                    <a href="{{ url_for('create_user') }}" class="btn btn-primary">
-                        <i class="fas fa-users"></i> 管理使用者
-                    </a>
-                    <a href="{{ url_for('create_user') }}" class="btn btn-success">
-                        <i class="fas fa-user-plus"></i> 新增使用者
-                    </a>
-                    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#batchUploadModal">
-                        <i class="fas fa-file-upload"></i> 批次匯入
+
+        <!-- 目標管理模組 -->
+        <div class="tab-pane fade" id="goal" role="tabpanel">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">目標完成率</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="goalCompletionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">目標類型分布</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="goalTypeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">KPI達成狀況</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="kpiStatusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">目標追蹤</h5>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newGoalModal">
+                                <i class="fas fa-plus"></i> 新增目標
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                <thead>
+                    <tr>
+                                            <th>目標描述</th>
+                                            <th>負責人</th>
+                                            <th>類型</th>
+                                            <th>開始日期</th>
+                                            <th>目標日期</th>
+                                            <th>進度</th>
+                                            <th>狀態</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                                        {% for goal in goals %}
+                                        <tr>
+                                            <td>{{ goal.description }}</td>
+                                            <td>{{ goal.assignee.full_name }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ goal.type_color }}">
+                                                    {{ goal.type }}
+                                                </span>
+                                            </td>
+                                            <td>{{ goal.start_date }}</td>
+                                            <td>{{ goal.target_date }}</td>
+                                            <td>
+                                                <div class="progress">
+                                                    <div class="progress-bar" role="progressbar" 
+                                                         style="width: {{ goal.progress }}%">
+                                                        {{ goal.progress }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ goal.status_color }}">
+                                                    {{ goal.status }}
+                            </span>
+                        </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <button class="btn btn-sm btn-info">編輯</button>
+                                                    <button class="btn btn-sm btn-danger">刪除</button>
+                                                </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 360度問卷管理模組 -->
+        <div class="tab-pane fade" id="feedback" role="tabpanel" aria-labelledby="feedback-tab">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title">問卷任務管理</h5>
+                <div>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importModal">
+                        <i class="fas fa-file-import"></i> 批量匯入問卷任務
+                    </button>
+                    <button class="btn btn-primary" onclick="location.href='{{ url_for('create_feedback') }}'">
+                        <i class="fas fa-plus"></i> 新增任務
+                    </button>
+                    <form action="{{ url_for('simulate_feedback') }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-info">
+                            <i class="fas fa-magic"></i> 模擬問卷
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>評估者</th>
+                                    <th>部門</th>
+                        <th>受評者</th>
+                                    <th>部門</th>
+                        <th>狀態</th>
+                        <th>建立時間</th>
+                                    <th>完成時間</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in feedback_tasks %}
+                                <tr>
+                                    <td>{{ task.evaluator.full_name }}</td>
+                                    <td>{{ task.evaluator.department.name if task.evaluator.department else '未分配' }}</td>
+                                    <td>{{ task.target.full_name }}</td>
+                                    <td>{{ task.target.department.name if task.target.department else '未分配' }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if task.status == '已完成' else 'primary' }}">
+                                            {{ task.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ task.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ task.completed_at.strftime('%Y-%m-%d %H:%M') if task.completed_at else '-' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('feedback', feedback_id=task.id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </a>
+                                        <a href="{{ url_for('edit_feedback', feedback_id=task.id) }}" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i> 編輯
+                                        </a>
+                                        <form action="{{ url_for('delete_feedback', feedback_id=task.id) }}" method="POST" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('確定要刪除這個評估任務嗎？')">
+                                                <i class="fas fa-trash"></i> 刪除
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 使用者管理模組 -->
+        <div class="tab-pane fade" id="user" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title">使用者管理</h5>
+                <div>
+                    <button class="btn btn-success" onclick="location.href='{{ url_for('download_user_template') }}'">
+                        <i class="fas fa-download"></i> 批量匯入
+                    </button>
+                    <button class="btn btn-primary" onclick="location.href='{{ url_for('create_user') }}'">
+                        <i class="fas fa-plus"></i> 新增使用者
                     </button>
                 </div>
             </div>
             
-            <!-- 使用者列表 -->
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-hover">
                     <thead>
                         <tr>
                             <th>員工編號</th>
@@ -111,9 +341,10 @@
                             <th>部門</th>
                             <th>職位</th>
                             <th>狀態</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                            <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
                         {% for user in users %}
                         <tr>
                             <td>{{ user.employee_id }}</td>
@@ -123,167 +354,564 @@
                             <td>
                                 <span class="badge {% if user.is_active %}bg-success{% else %}bg-danger{% endif %}">
                                     {{ '在職' if user.is_active else '離職' }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- 批次上傳Modal -->
-    <div class="modal fade" id="batchUploadModal" tabindex="-1" aria-labelledby="batchUploadModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="batchUploadModalLabel">批次匯入使用者</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <a href="{{ url_for('download_user_template') }}" class="btn btn-info w-100">
-                            <i class="fas fa-download"></i> 下載使用者範本
-                        </a>
-                    </div>
-                    <form action="{{ url_for('batch_upload_users') }}" method="POST" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="file" class="form-label">選擇Excel檔案</label>
-                            <input type="file" class="form-control" id="file" name="file" accept=".xlsx" required>
-                        </div>
-                        <div class="alert alert-info">
-                            <h6>Excel檔案格式說明：</h6>
-                            <p class="mb-1">必要欄位：</p>
-                            <ul class="mb-2">
-                                <li>username（使用者名稱）</li>
-                                <li>employee_id（員工編號）</li>
-                                <li>full_name（姓名）</li>
-                                <li>department（部門）</li>
-                                <li>position（職位）</li>
-                            </ul>
-                            <p class="mb-1">選填欄位：</p>
-                            <ul class="mb-0">
-                                <li>email（電子郵件）</li>
-                                <li>hire_date（到職日期，格式：YYYY-MM-DD）</li>
-                            </ul>
-                            <p class="mt-2 mb-0 text-danger">
-                                <i class="fas fa-info-circle"></i> 員工編號將作為使用者的預設密碼
-                            </p>
-                        </div>
-                        <div class="text-end">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                            <button type="submit" class="btn btn-primary">上傳</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 問卷管理區塊 -->
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">問卷管理</h5>
-            <div>
-                <a href="{{ url_for('create_feedback') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> 新增評估任務
-                </a>
-                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                    <i class="fas fa-file-import"></i> 匯入評估任務
-                </button>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>評估者</th>
-                            <th>受評者</th>
-                            <th>部門</th>
-                            <th>狀態</th>
-                            <th>建立時間</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for feedback in feedbacks %}
-                        <tr>
-                            <td>{{ feedback.id }}</td>
-                            <td>{{ User.query.get(feedback.evaluator_id).username }}</td>
-                            <td>{{ User.query.get(feedback.target_id).username }}</td>
-                            <td>{{ User.query.get(feedback.target_id).department.name if User.query.get(feedback.target_id).department else '未分配部門' }}</td>
+                            </span>
+                        </td>
                             <td>
-                                <span class="badge {% if feedback.status == 'completed' %}bg-success{% else %}bg-warning{% endif %}">
-                                    {{ '已完成' if feedback.status == 'completed' else '待完成' }}
-                                </span>
+                                <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i> 編輯
+                                </a>
+                                <form action="{{ url_for('delete_user', user_id=user.id) }}" method="POST" class="d-inline" onsubmit="return confirm('確定要刪除此使用者嗎？');">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-trash"></i> 刪除
+                                    </button>
+                                </form>
                             </td>
-                            <td>{{ feedback.created_at.strftime('%Y-%m-%d') }}</td>
-                            <td>
-                                <a href="{{ url_for('feedback', feedback_id=feedback.id) }}" class="btn btn-sm btn-outline-primary">查看</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 新增目標Modal -->
+<div class="modal fade" id="newGoalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增績效目標</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-        </div>
-    </div>
-
-    <!-- 系統設定區塊 -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">系統設定</h5>
-        </div>
-        <div class="card-body">
-            <a href="{{ url_for('logout') }}" class="btn btn-danger">登出</a>
-        </div>
-    </div>
-
-    <!-- 匯入CSV Modal -->
-    <div class="modal fade" id="uploadModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">匯入評估任務</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
+            <div class="modal-body">
+                <form id="goalForm">
                     <div class="mb-3">
-                        <a href="{{ url_for('download_csv_template') }}" class="btn btn-info w-100">
-                            <i class="fas fa-download"></i> 下載評估任務範本
-                        </a>
+                        <label class="form-label">目標描述</label>
+                        <textarea class="form-control" name="description" rows="3" required></textarea>
                     </div>
-                    <form action="{{ url_for('upload_feedback_csv') }}" method="post" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="csv_file" class="form-label">選擇CSV檔案</label>
-                            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                    <div class="mb-3">
+                        <label class="form-label">負責人</label>
+                        <select class="form-control" name="assignee" required>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">開始日期</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
                         </div>
-                        <div class="alert alert-info">
-                            <h6>CSV檔案格式說明：</h6>
-                            <p class="mb-1">必要欄位：</p>
-                            <ul class="mb-2">
-                                <li>evaluator_username（評估者帳號）</li>
-                                <li>target_username（受評者帳號）</li>
-                                <li>relationship（關係：supervisor/peer/subordinate）</li>
-                            </ul>
-                            <p class="mb-1">注意事項：</p>
-                            <ul class="mb-0">
-                                <li>評估者和受評者必須是系統中已存在的使用者</li>
-                                <li>關係必須是指定的三種之一</li>
-                                <li>同一評估者不能重複評估同一受評者</li>
-                            </ul>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">目標日期</label>
+                                <input type="date" class="form-control" name="target_date" required>
+                            </div>
                         </div>
-                        <div class="text-end">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                            <button type="submit" class="btn btn-primary">上傳</button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">目標類型</label>
+                        <select class="form-control" name="goal_type" required>
+                            <option value="個人">個人目標</option>
+                            <option value="部門">部門目標</option>
+                            <option value="公司">公司目標</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveGoal()">保存</button>
             </div>
         </div>
     </div>
 </div>
+
+<!-- 批量匯入模態框 -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">批量匯入問卷任務</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <button class="btn btn-outline-primary btn-lg me-3" onclick="location.href='{{ url_for('download_feedback_template') }}'">
+                        <i class="fas fa-download"></i>
+                        <div class="mt-2">下載範本</div>
+                    </button>
+                    <button class="btn btn-outline-success btn-lg" onclick="document.getElementById('uploadInput').click()">
+                        <i class="fas fa-upload"></i>
+                        <div class="mt-2">上傳檔案</div>
+                    </button>
+                </div>
+                
+                <form id="uploadForm" action="{{ url_for('upload_feedback_csv') }}" method="POST" enctype="multipart/form-data" style="display: none;">
+                    <input type="file" id="uploadInput" name="file" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(this)">
+                </form>
+                
+                <div id="uploadInfo" class="alert alert-info" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-file-excel"></i>
+                            <span id="fileName"></span>
+                        </div>
+                        <button type="button" class="btn-close" onclick="clearFileSelection()"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitUpload()" id="uploadButton" disabled>上傳</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化所有分頁
+    const tabEls = document.querySelectorAll('button[data-bs-toggle="tab"]');
+    tabEls.forEach(tabEl => {
+        new bootstrap.Tab(tabEl);
+    });
+    
+    // 績效趨勢圖表
+    const trendCtx = document.getElementById('performanceTrendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+            datasets: [{
+                label: '整體績效趨勢',
+                data: {{ performance_trend_data|tojson }},
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 5
+                }
+            }
+        }
+    });
+
+    // 部門績效比較圖表
+    const deptCtx = document.getElementById('departmentComparisonChart').getContext('2d');
+    new Chart(deptCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ department_names|tojson }},
+            datasets: [{
+                label: '部門平均績效',
+                data: {{ department_scores|tojson }},
+                backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                borderColor: 'rgb(54, 162, 235)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 5
+                }
+            }
+        }
+    });
+
+    // 目標完成率圖表
+    const goalCtx = document.getElementById('goalCompletionChart').getContext('2d');
+    new Chart(goalCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['已完成', '進行中', '已逾期'],
+            datasets: [{
+                data: [
+                    {{ goals|selectattr('status', 'equalto', '已完成')|list|length }},
+                    {{ goals|selectattr('status', 'equalto', '進行中')|list|length }},
+                    {{ goals|selectattr('status', 'equalto', '已逾期')|list|length }}
+                ],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(0, 123, 255, 0.8)',
+                    'rgba(220, 53, 69, 0.8)'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // 目標類型分布圖表
+    const typeCtx = document.getElementById('goalTypeChart').getContext('2d');
+    new Chart(typeCtx, {
+        type: 'pie',
+        data: {
+            labels: ['個人目標', '部門目標', '公司目標'],
+            datasets: [{
+                data: [
+                    {{ goals|selectattr('goal_type', 'equalto', '個人')|list|length }},
+                    {{ goals|selectattr('goal_type', 'equalto', '部門')|list|length }},
+                    {{ goals|selectattr('goal_type', 'equalto', '公司')|list|length }}
+                ],
+                backgroundColor: [
+                    'rgba(23, 162, 184, 0.8)',
+                    'rgba(0, 123, 255, 0.8)',
+                    'rgba(40, 167, 69, 0.8)'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // KPI達成狀況圖表
+    const kpiCtx = document.getElementById('kpiStatusChart').getContext('2d');
+    new Chart(kpiCtx, {
+        type: 'radar',
+        data: {
+            labels: ['業務目標', '專案進度', '客戶滿意度', '創新改善', '團隊合作'],
+            datasets: [{
+                label: '實際達成',
+                data: {{ kpi_actual_data|tojson }},
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgb(75, 192, 192)'
+            }, {
+                label: '目標值',
+                data: {{ kpi_target_data|tojson }},
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgb(255, 99, 132)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        stepSize: 20
+                    }
+                }
+            }
+        }
+    });
+
+    // 問卷完成率圖表
+    const completionRateCtx = document.getElementById('completionRateChart').getContext('2d');
+    new Chart(completionRateCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['已完成', '待完成'],
+            datasets: [{
+                data: [
+                    {{ completion_rate.completed }},
+                    {{ completion_rate.pending }}
+                ],
+                backgroundColor: ['#28a745', '#ffc107'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                datalabels: {
+                    color: '#fff',
+                    formatter: (value, ctx) => {
+                        let sum = 0;
+                        let dataArr = ctx.chart.data.datasets[0].data;
+                        dataArr.map(data => {
+                            sum += data;
+                        });
+                        let percentage = (value * 100 / sum).toFixed(1) + "%";
+                        return percentage;
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
+    
+    // 各維度平均分數圖表
+    const dimensionScoresCtx = document.getElementById('dimensionScoresChart').getContext('2d');
+    new Chart(dimensionScoresCtx, {
+        type: 'radar',
+        data: {
+            labels: {{ dimension_labels|tojson }},
+            datasets: [{
+                label: '實際分數',
+                data: {{ dimension_scores|tojson }},
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                pointRadius: 4
+            }, {
+                label: '整體平均',
+                data: {{ overall_scores|tojson }},
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 5,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // 落點分析圖表
+    const scatterPlotCtx = document.getElementById('scatterPlotChart').getContext('2d');
+    new Chart(scatterPlotCtx, {
+        type: 'scatter',
+        data: {
+            datasets: {{ scatter_plot_data|tojson }}
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    title: {
+                        display: true,
+                        text: '領導力'
+                    },
+                    min: 0,
+                    max: 5
+                },
+                y: {
+                    type: 'linear',
+                    title: {
+                        display: true,
+                        text: '溝通技巧'
+                    },
+                    min: 0,
+                    max: 5
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.raw.label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+
+function saveGoal() {
+    const form = document.getElementById('goalForm');
+    const formData = new FormData(form);
+    
+    fetch('/admin/goals/create', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('保存失敗：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('保存失敗，請稍後再試');
+    });
+}
+
+// 匯出功能
+function exportChart(chartId) {
+    const chart = Chart.getChart(chartId + 'Chart');
+    const link = document.createElement('a');
+    link.download = chartId + '.png';
+    link.href = chart.toBase64Image();
+    link.click();
+}
+
+function exportTableToExcel(tableId) {
+    const table = document.getElementById(tableId);
+    const wb = XLSX.utils.table_to_book(table);
+    XLSX.writeFile(wb, 'statistics.xlsx');
+}
+
+// 篩選功能
+document.getElementById('analysisFilterForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch('/admin/dashboard', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        // 更新問卷完成率圖表
+        const completionChart = Chart.getChart('completionRateChart');
+        if (completionChart) {
+            completionChart.data.datasets[0].data = [data.completion_rate.completed, data.completion_rate.pending];
+            completionChart.update();
+        }
+        
+        // 更新維度分析圖表
+        const dimensionChart = Chart.getChart('dimensionScoresChart');
+        if (dimensionChart) {
+            dimensionChart.data.labels = data.dimension_labels;
+            dimensionChart.data.datasets[0].data = data.dimension_scores;
+            dimensionChart.data.datasets[1].data = data.overall_scores;
+            dimensionChart.update();
+        }
+        
+        // 更新詳細統計表格
+        const tbody = document.querySelector('#statsTable tbody');
+        tbody.innerHTML = '';
+        
+        data.detailed_stats.forEach(stat => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${stat.name}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: ${(stat.average/5)*100}%;"
+                                 aria-valuenow="${stat.average}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="5">
+                            </div>
+                        </div>
+                        <span>${stat.average.toFixed(2)}</span>
+                    </div>
+                </td>
+                <td>${stat.max}</td>
+                <td>${stat.min}</td>
+                <td>${stat.std_dev.toFixed(2)}</td>
+                <td>${stat.sample_size}</td>
+                <td>
+                    <span class="sparkline">
+                        ${stat.trend ? stat.trend.join(',') : ''}
+                    </span>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('分析數據更新失敗，請稍後再試');
+    });
+});
+
+function handleFileSelect(input) {
+    const file = input.files[0];
+    if (file) {
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('uploadInfo').style.display = 'block';
+        document.getElementById('uploadButton').disabled = false;
+    }
+}
+
+function clearFileSelection() {
+    document.getElementById('uploadForm').reset();
+    document.getElementById('uploadInfo').style.display = 'none';
+    document.getElementById('uploadButton').disabled = true;
+}
+
+function submitUpload() {
+    const form = document.getElementById('uploadForm');
+    const formData = new FormData(form);
+    
+    fetch('{{ url_for("upload_feedback_csv") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('檔案上傳成功！');
+            location.reload();
+        } else {
+            alert('上傳失敗：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('上傳失敗，請稍後再試');
+    });
+}
+</script>
 {% endblock %} 

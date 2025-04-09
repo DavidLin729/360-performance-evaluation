@@ -9,8 +9,9 @@ import io
 import os
 import pandas as pd
 import numpy as np
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+import random
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -47,6 +48,7 @@ class User(db.Model, UserMixin):
     hire_date = db.Column(db.Date)  # 到職日期
     is_active = db.Column(db.Boolean, default=True)  # 是否在職
     is_admin = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(20), default='active')  # 用戶狀態：active, inactive, suspended
     department_id = db.Column(db.Integer, db.ForeignKey('department.id'))
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
     role = db.relationship('Role', backref='users')
@@ -74,6 +76,9 @@ class Feedback(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     evaluator_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     target_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    status = db.Column(db.String(20), default='pending')  # pending 或 completed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
     
     # 工作能力評估 (1-5分)
     work_quality = db.Column(db.Integer)
@@ -120,8 +125,9 @@ class Feedback(db.Model):
     improvements = db.Column(db.Text)
     suggestions = db.Column(db.Text)
     
-    status = db.Column(db.String(20), default='pending')  # pending 或 completed
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # 添加關聯關係
+    evaluator = db.relationship('User', foreign_keys=[evaluator_id], backref='evaluated_feedbacks')
+    target = db.relationship('User', foreign_keys=[target_id], backref='received_feedbacks')
 
 # 管理者驗證裝飾器
 def admin_required(f):
@@ -224,46 +230,375 @@ def feedback(feedback_id):
         feedback.suggestions = request.form['suggestions']
         
         feedback.status = 'completed'
+        feedback.completed_at = datetime.utcnow()
         db.session.commit()
         flash('評估表單已成功提交')
         return redirect(url_for('index'))
     return render_template('feedback_form.html', feedback=feedback, User=User)
 
 # 管理者路由
-@app.route('/admin/dashboard')
+@app.route('/admin/dashboard', methods=['GET', 'POST'])
+@login_required
 @admin_required
 def admin_dashboard():
-    # 獲取系統概況數據
-    total_users = User.query.count()
-    pending_feedback = Feedback.query.filter_by(status='pending').count()
-    completed_feedback = Feedback.query.filter_by(status='completed').count()
-    
-    # 獲取所有使用者
-    users = User.query.all()
-    
-    # 獲取所有評估任務
-    feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).all()
-    
-    # 獲取最近活動
-    recent_activities = []
-    recent_feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).limit(5).all()
-    for feedback in recent_feedbacks:
-        evaluator = User.query.get(feedback.evaluator_id)
-        target = User.query.get(feedback.target_id)
-        activity = {
-            'description': f'{evaluator.username} 完成了對 {target.username} 的評估',
-            'timestamp': feedback.created_at.strftime('%Y-%m-%d %H:%M')
+    if request.method == 'POST':
+        # 獲取分析參數
+        analysis_type = request.form.get('analysis_type', 'overall')
+        time_range = request.form.get('time_range', 'all')
+        department_id = request.form.get('department', '')
+        user_id = request.form.get('user', '')
+
+        # 基礎查詢
+        query = Feedback.query.filter_by(status='completed')
+
+        # 根據時間範圍過濾
+        if time_range != 'all':
+            now = datetime.now()
+            if time_range == 'month':
+                query = query.filter(Feedback.created_at >= now.replace(day=1))
+            elif time_range == 'quarter':
+                query = query.filter(Feedback.created_at >= now.replace(month=((now.month-1)//3)*3+1, day=1))
+            elif time_range == 'year':
+                query = query.filter(Feedback.created_at >= now.replace(month=1, day=1))
+
+        # 根據部門過濾
+        if department_id:
+            query = query.join(User, Feedback.target_id == User.id).filter(User.department_id == department_id)
+
+        # 根據用戶過濾
+        if user_id:
+            query = query.filter(Feedback.target_id == user_id)
+
+        # 獲取篩選後的問卷
+        filtered_feedbacks = query.all()
+
+        # 計算問卷完成率
+        total_tasks = Feedback.query
+        if department_id:
+            total_tasks = total_tasks.join(User, Feedback.target_id == User.id).filter(User.department_id == department_id)
+        if user_id:
+            total_tasks = total_tasks.filter(Feedback.target_id == user_id)
+
+        completion_rate = {
+            'completed': len(filtered_feedbacks),
+            'pending': total_tasks.filter_by(status='pending').count()
         }
-        recent_activities.append(activity)
+
+        # 定義評估維度
+        dimension_labels = ['領導力', '溝通技巧', '專業知識', '團隊合作', '創新能力']
+        dimension_fields = {
+            '領導力': ['leadership', 'decision_making', 'team_management'],
+            '溝通技巧': ['communication_skills', 'presentation_skills', 'listening_skills'],
+            '專業知識': ['technical_knowledge', 'industry_knowledge', 'problem_solving'],
+            '團隊合作': ['collaboration', 'interpersonal_skills', 'conflict_resolution'],
+            '創新能力': ['innovation', 'creativity', 'adaptability']
+        }
+
+        # 計算各維度平均分數
+        dimension_scores = []
+        overall_scores = []
+        detailed_stats = []
+
+        for label, fields in dimension_fields.items():
+            scores = []
+            for feedback in filtered_feedbacks:
+                # 計算該維度的平均分數
+                dimension_scores_sum = sum(getattr(feedback, field, 0) or 0 for field in fields)
+                dimension_avg = dimension_scores_sum / len(fields) if dimension_scores_sum > 0 else 0
+                if dimension_avg > 0:
+                    scores.append(dimension_avg)
+
+            if scores:
+                avg = sum(scores) / len(scores)
+                dimension_scores.append(round(avg, 2))
+                overall_scores.append(round(avg, 2))
+                
+                detailed_stats.append({
+                    'name': label,
+                    'average': avg,
+                    'max': max(scores),
+                    'min': min(scores),
+                    'std_dev': (sum((x - avg) ** 2 for x in scores) / len(scores)) ** 0.5,
+                    'sample_size': len(scores),
+                    'trend': [round(avg, 2)]  # 簡化的趨勢數據
+                })
+            else:
+                dimension_scores.append(0)
+                overall_scores.append(0)
+                detailed_stats.append({
+                    'name': label,
+                    'average': 0,
+                    'max': 0,
+                    'min': 0,
+                    'std_dev': 0,
+                    'sample_size': 0,
+                    'trend': [0]
+                })
+
+        return jsonify({
+            'completion_rate': completion_rate,
+            'dimension_labels': dimension_labels,
+            'dimension_scores': dimension_scores,
+            'overall_scores': overall_scores,
+            'detailed_stats': detailed_stats
+        })
+
+    # GET請求的原有邏輯
+    # 統計卡片數據
+    pending_tasks = Feedback.query.filter_by(status='pending').count()
+    completed_tasks = Feedback.query.filter_by(status='completed').count()
+    active_goals = PerformanceGoal.query.filter_by(status='進行中').count()
+    
+    # 計算待改善項目數量
+    improvement_items = 0
+    feedbacks = Feedback.query.filter_by(status='completed').all()
+    for feedback in feedbacks:
+        if any(score < 3 for score in [
+            feedback.leadership,
+            feedback.communication_skills,
+            feedback.technical_knowledge,
+            feedback.collaboration,
+            feedback.innovation
+        ] if score is not None):
+            improvement_items += 1
+
+    # 績效趨勢數據
+    performance_trend_data = calculate_performance_trend()
+    
+    # 部門績效比較數據
+    departments = Department.query.all()
+    department_names = [dept.name for dept in departments]
+    department_scores = calculate_department_scores(departments)
+    
+    # 目標管理數據
+    goals = PerformanceGoal.query.all()
+    
+    # KPI數據
+    kpi_actual_data = []
+    kpi_target_data = [80, 85, 95, 70, 90]
+    
+    # 問卷分析數據
+    completed_feedbacks = Feedback.query.filter_by(status='completed').all()
+    
+    # 問卷完成率
+    completion_rate = {
+        'completed': completed_tasks,
+        'pending': pending_tasks
+    }
+    
+    # 各維度平均分數
+    dimension_labels = ['領導力', '溝通技巧', '專業知識', '團隊合作', '創新能力']
+    dimension_scores = []
+    overall_scores = []
+    
+    if completed_feedbacks:
+        # 計算各維度的平均分數
+        dimensions = {
+            'leadership': [],
+            'communication_skills': [],
+            'technical_knowledge': [],
+            'collaboration': [],
+            'innovation': []
+        }
+        
+        for feedback in completed_feedbacks:
+            for dimension in dimensions:
+                score = getattr(feedback, dimension)
+                if score is not None:
+                    dimensions[dimension].append(score)
+        
+        # 計算每個維度的平均分數
+        for dimension in dimensions.values():
+            if dimension:
+                avg_score = sum(dimension) / len(dimension)
+                dimension_scores.append(round(avg_score, 2))
+                overall_scores.append(round(avg_score, 2))  # 使用相同的數據作為整體平均
+            else:
+                dimension_scores.append(0)
+                overall_scores.append(0)
+    
+    # 詳細統計數據
+    detailed_stats = []
+    if completed_feedbacks:
+        for dimension, label in zip(['leadership', 'communication_skills', 'technical_knowledge', 'collaboration', 'innovation'], dimension_labels):
+            scores = [getattr(f, dimension) for f in completed_feedbacks if getattr(f, dimension) is not None]
+            if scores:
+                avg = sum(scores) / len(scores)
+                max_score = max(scores)
+                min_score = min(scores)
+                std_dev = (sum((x - avg) ** 2 for x in scores) / len(scores)) ** 0.5
+                detailed_stats.append({
+                    'name': label,
+                    'average': avg,
+                    'max': max_score,
+                    'min': min_score,
+                    'std_dev': std_dev,
+                    'sample_size': len(scores)
+                })
+    
+    # 落點分析數據
+    scatter_plot_data = []
+    if completed_feedbacks:
+        for feedback in completed_feedbacks:
+            if feedback.leadership is not None and feedback.communication_skills is not None:
+                scatter_plot_data.append({
+                    'label': f"{feedback.evaluator.full_name} → {feedback.target.full_name}",
+                    'data': [{
+                        'x': feedback.leadership,
+                        'y': feedback.communication_skills
+                    }],
+                    'backgroundColor': 'rgba(54, 162, 235, 0.5)'
+                })
+    
+    # 待改善項目列表
+    improvement_list = get_improvement_items()
+    
+    # 問卷任務列表
+    feedback_tasks = get_feedback_tasks()
     
     return render_template('admin/dashboard.html',
-                         total_users=total_users,
-                         pending_feedback=pending_feedback,
-                         completed_feedback=completed_feedback,
-                         recent_activities=recent_activities,
-                         users=users,
-                         feedbacks=feedbacks,
-                         User=User)
+        pending_tasks=pending_tasks,
+        completed_tasks=completed_tasks,
+        active_goals=active_goals,
+        improvement_items=improvement_items,
+        performance_trend_data=performance_trend_data,
+        department_names=department_names,
+        department_scores=department_scores,
+        goals=goals,
+        kpi_actual_data=kpi_actual_data,
+        kpi_target_data=kpi_target_data,
+        improvement_list=improvement_list,
+        feedback_tasks=feedback_tasks,
+        users=User.query.all(),
+        # 問卷分析數據
+        completion_rate=completion_rate,
+        dimension_labels=dimension_labels,
+        dimension_scores=dimension_scores,
+        overall_scores=overall_scores,
+        detailed_stats=detailed_stats,
+        scatter_plot_data=scatter_plot_data
+    )
+
+def calculate_performance_trend():
+    """計算季度績效趨勢"""
+    current_year = datetime.now().year
+    quarters = {
+        1: [1, 2, 3],
+        2: [4, 5, 6],
+        3: [7, 8, 9],
+        4: [10, 11, 12]
+    }
+    
+    trend_data = []
+    for quarter, months in quarters.items():
+        feedbacks = Feedback.query.filter(
+            Feedback.status == 'completed',
+            extract('year', Feedback.created_at) == current_year,
+            extract('month', Feedback.created_at).in_(months)
+        ).all()
+        
+        if feedbacks:
+            quarter_scores = []
+            for feedback in feedbacks:
+                scores = [
+                    feedback.leadership,
+                    feedback.communication_skills,
+                    feedback.technical_knowledge,
+                    feedback.collaboration,
+                    feedback.innovation
+                ]
+                avg_score = sum(filter(None, scores)) / len([s for s in scores if s is not None])
+                quarter_scores.append(avg_score)
+            
+            trend_data.append(round(sum(quarter_scores) / len(quarter_scores), 2))
+        else:
+            trend_data.append(0)
+    
+    return trend_data
+
+def calculate_department_scores(departments):
+    """計算各部門平均績效分數"""
+    department_scores = []
+    
+    for dept in departments:
+        feedbacks = Feedback.query.join(
+            User, Feedback.target_id == User.id
+        ).filter(
+            User.department_id == dept.id,
+            Feedback.status == 'completed'
+        ).all()
+        
+        if feedbacks:
+            dept_scores = []
+            for feedback in feedbacks:
+                scores = [
+                    feedback.leadership,
+                    feedback.communication_skills,
+                    feedback.technical_knowledge,
+                    feedback.collaboration,
+                    feedback.innovation
+                ]
+                avg_score = sum(filter(None, scores)) / len([s for s in scores if s is not None])
+                dept_scores.append(avg_score)
+            
+            department_scores.append(round(sum(dept_scores) / len(dept_scores), 2))
+        else:
+            department_scores.append(0)
+    
+    return department_scores
+
+def get_improvement_items():
+    """獲取需要改善的項目列表"""
+    improvement_items = []
+    feedbacks = Feedback.query.filter_by(status='completed').all()
+    
+    for feedback in feedbacks:
+        scores = {
+            'leadership': (feedback.leadership, '領導能力'),
+            'communication': (feedback.communication_skills, '溝通技巧'),
+            'technical': (feedback.technical_knowledge, '專業知識'),
+            'collaboration': (feedback.collaboration, '團隊合作'),
+            'innovation': (feedback.innovation, '創新能力')
+        }
+        
+        for key, (score, name) in scores.items():
+            if score and score < 3:
+                target_user = User.query.get(feedback.target_id)
+                improvement_items.append({
+                    'employee_name': target_user.full_name,
+                    'department': target_user.department.name if target_user.department else '未分配',
+                    'item': name,
+                    'suggestion': f'建議加強{name}相關培訓',
+                    'status': '進行中',
+                    'status_color': 'warning'
+                })
+    
+    return improvement_items
+
+def get_feedback_tasks():
+    """獲取問卷任務列表"""
+    tasks = []
+    feedbacks = Feedback.query.join(
+        User, Feedback.evaluator_id == User.id
+    ).join(
+        User, Feedback.target_id == User.id, aliased=True
+    ).all()
+    
+    for feedback in feedbacks:
+        evaluator = User.query.get(feedback.evaluator_id)
+        target = User.query.get(feedback.target_id)
+        
+        if evaluator and target:
+            tasks.append({
+                'id': feedback.id,
+                'evaluator': evaluator,
+                'target': target,
+                'status': '已完成' if feedback.status == 'completed' else '進行中',
+                'created_at': feedback.created_at,
+                'completed_at': feedback.completed_at if feedback.status == 'completed' else None
+            })
+    
+    return tasks
 
 @app.route('/admin/user/create', methods=['GET', 'POST'])
 @admin_required
@@ -338,9 +673,60 @@ def create_feedback():
         return redirect(url_for('admin_dashboard'))
     return render_template('admin/create_feedback.html', users=users)
 
+@app.route('/admin/feedback/download_template')
+@login_required
+@admin_required
+def download_feedback_template():
+    """下載評估任務匯入範本"""
+    output = io.BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    workbook = writer.book
+    
+    # 建立範本工作表
+    template_sheet = workbook.add_worksheet('範本')
+    
+    # 設定格式
+    title_format = workbook.add_format({
+        'bold': True,
+        'font_size': 12,
+        'bg_color': '#D9E1F2',
+        'border': 1
+    })
+    
+    content_format = workbook.add_format({
+        'border': 1
+    })
+    
+    # 寫入標題
+    headers = ['評估者員工編號', '受評者員工編號']
+    for col, header in enumerate(headers):
+        template_sheet.write(0, col, header, title_format)
+    
+    # 寫入說明
+    instructions = [
+        ['評估者員工編號', '評估者的員工編號（必填）'],
+        ['受評者員工編號', '受評者的員工編號（必填）']
+    ]
+    
+    for row_num, instruction in enumerate(instructions):
+        template_sheet.write(row_num + 2, 0, instruction[0], title_format if row_num == 0 else content_format)
+        template_sheet.write(row_num + 2, 1, instruction[1], title_format if row_num == 0 else content_format)
+    
+    writer.close()
+    output.seek(0)
+    
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name='feedback_template.xlsx'
+    )
+
 @app.route('/admin/feedback/upload', methods=['POST'])
+@login_required
 @admin_required
 def upload_feedback_csv():
+    """上傳評估任務CSV檔案"""
     if 'csv_file' not in request.files:
         flash('沒有上傳檔案')
         return redirect(url_for('admin_dashboard'))
@@ -360,9 +746,9 @@ def upload_feedback_csv():
         csv_data = csv.DictReader(stream)
         
         # 驗證CSV標題
-        required_headers = ['evaluator_username', 'target_username']
+        required_headers = ['評估者員工編號', '受評者員工編號']
         if not all(header in csv_data.fieldnames for header in required_headers):
-            flash('CSV檔案格式錯誤，請下載範本查看正確格式')
+            flash('CSV檔案格式錯誤，請使用正確的範本')
             return redirect(url_for('admin_dashboard'))
         
         # 處理每一行資料
@@ -371,65 +757,51 @@ def upload_feedback_csv():
         error_messages = []
         
         for row in csv_data:
-            evaluator = User.query.filter_by(username=row['evaluator_username']).first()
-            target = User.query.filter_by(username=row['target_username']).first()
-            
-            if not evaluator or not target:
+            try:
+                # 查找評估者和受評者
+                evaluator = User.query.filter_by(employee_id=row['評估者員工編號']).first()
+                target = User.query.filter_by(employee_id=row['受評者員工編號']).first()
+                
+                if not evaluator:
+                    raise ValueError(f"找不到評估者：{row['評估者員工編號']}")
+                if not target:
+                    raise ValueError(f"找不到受評者：{row['受評者員工編號']}")
+                
+                # 檢查是否已存在相同的評估任務
+                existing_feedback = Feedback.query.filter_by(
+                    evaluator_id=evaluator.id,
+                    target_id=target.id
+                ).first()
+                
+                if existing_feedback:
+                    raise ValueError(f"已存在相同的評估任務：{evaluator.full_name} -> {target.full_name}")
+                
+                # 建立新的評估任務
+                feedback = Feedback(
+                    evaluator_id=evaluator.id,
+                    target_id=target.id,
+                    status='pending'
+                )
+                db.session.add(feedback)
+                success_count += 1
+                
+            except ValueError as e:
                 error_count += 1
-                error_messages.append(f"找不到使用者：{row['evaluator_username']} 或 {row['target_username']}")
-                continue
-            
-            # 檢查是否已存在相同的評估任務
-            existing_feedback = Feedback.query.filter_by(
-                evaluator_id=evaluator.id,
-                target_id=target.id
-            ).first()
-            
-            if existing_feedback:
-                error_count += 1
-                error_messages.append(f"評估任務已存在：{row['evaluator_username']} -> {row['target_username']}")
-                continue
-            
-            # 建立新的評估任務
-            feedback = Feedback(
-                evaluator_id=evaluator.id,
-                target_id=target.id,
-                status='pending'
-            )
-            db.session.add(feedback)
-            success_count += 1
+                error_messages.append(str(e))
         
         db.session.commit()
         
+        # 顯示結果訊息
         if success_count > 0:
             flash(f'成功匯入 {success_count} 筆評估任務')
         if error_count > 0:
-            flash(f'匯入失敗 {error_count} 筆：' + '; '.join(error_messages))
+            flash(f'匯入失敗 {error_count} 筆：' + '；'.join(error_messages))
         
     except Exception as e:
-        flash(f'檔案處理錯誤：{str(e)}')
         db.session.rollback()
+        flash(f'匯入失敗：{str(e)}')
     
     return redirect(url_for('admin_dashboard'))
-
-@app.route('/admin/feedback/template')
-@admin_required
-def download_csv_template():
-    # 建立CSV範本
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['evaluator_username', 'target_username'])
-    writer.writerow(['user1', 'user2'])
-    writer.writerow(['user2', 'user3'])
-    
-    # 準備下載
-    output.seek(0)
-    return send_file(
-        io.BytesIO(output.getvalue().encode('utf-8')),
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name='feedback_template.csv'
-    )
 
 @app.route('/admin/users/template')
 @login_required
@@ -555,8 +927,13 @@ def statistics():
     filtered_completed = query.filter_by(status='completed').count()
     completion_rate = {
         'completed': filtered_completed,
-        'pending': filtered_total - filtered_completed
+        'pending': filtered_total - filtered_completed,
+        'completion_percentage': 0.0  # 預設值
     }
+    
+    # 計算完成率百分比（避免除以零）
+    if filtered_total > 0:
+        completion_rate['completion_percentage'] = (filtered_completed / filtered_total) * 100
 
     # 定義評估維度
     dimensions = {
@@ -617,8 +994,13 @@ def statistics():
                 'user': user,
                 'total_feedbacks': len(personal_feedbacks),
                 'completed_feedbacks': len([f for f in personal_feedbacks if f.status == 'completed']),
+                'completion_percentage': 0.0,  # 預設值
                 'average_scores': {}
             }
+            
+            # 計算個人完成率百分比（避免除以零）
+            if personal_analysis['total_feedbacks'] > 0:
+                personal_analysis['completion_percentage'] = (personal_analysis['completed_feedbacks'] / personal_analysis['total_feedbacks']) * 100
             
             for field, label in dimensions.items():
                 scores = [getattr(f, field) for f in personal_feedbacks if getattr(f, field) is not None]
@@ -655,7 +1037,7 @@ def statistics():
                          completion_rate=completion_rate,
                          dimension_labels=dimension_labels,
                          dimension_scores=dimension_scores,
-                         overall_scores=overall_scores,  # 新增：傳遞整體平均值列表
+                         overall_scores=overall_scores,
                          detailed_stats=detailed_stats,
                          selected_department=department_id,
                          selected_time_range=time_range,
@@ -748,6 +1130,511 @@ def batch_upload_users():
         flash(f'匯入失敗：{str(e)}', 'error')
         return redirect(url_for('admin_dashboard'))
 
+# 使用者更新路由
+@app.route('/admin/user/<int:user_id>/update', methods=['POST'])
+@login_required
+@admin_required
+def update_user_inline(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    try:
+        # 更新使用者資料
+        if 'employee_id' in request.form:
+            user.employee_id = request.form['employee_id']
+        if 'full_name' in request.form:
+            user.full_name = request.form['full_name']
+        if 'department_id' in request.form:
+            user.department_id = request.form['department_id']
+        if 'position' in request.form:
+            user.position = request.form['position']
+        if 'is_active' in request.form:
+            user.is_active = request.form['is_active'] == '1'
+        
+        db.session.commit()
+        
+        # 返回更新後的資料
+        return jsonify({
+            'employee_id': user.employee_id,
+            'full_name': user.full_name,
+            'department_name': user.department.name if user.department else '未分配',
+            'position': user.position,
+            'is_active': user.is_active
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/admin/performance_trend')
+@login_required
+@admin_required
+def performance_trend():
+    # 獲取所有評估數據
+    feedbacks = Feedback.query.filter_by(status='completed').all()
+    
+    # 按季度整理數據
+    quarterly_data = {
+        'Q1': [], 'Q2': [], 'Q3': [], 'Q4': []
+    }
+    
+    for feedback in feedbacks:
+        quarter = (feedback.created_at.month - 1) // 3 + 1
+        q_key = f'Q{quarter}'
+        
+        # 計算平均分數（使用正確的屬性名稱）
+        scores = [
+            feedback.leadership,
+            feedback.communication_skills,
+            feedback.technical_knowledge,
+            feedback.collaboration,
+            feedback.innovation
+        ]
+        avg_score = sum(filter(None, scores)) / len([s for s in scores if s is not None])
+        quarterly_data[q_key].append(avg_score)
+    
+    # 計算每季平均
+    trend_data = {
+        quarter: round(sum(scores) / len(scores), 2) if scores else 0
+        for quarter, scores in quarterly_data.items()
+    }
+    
+    return render_template('admin/performance_trend.html', trend_data=trend_data)
+
+@app.route('/admin/department_comparison')
+@login_required
+@admin_required
+def department_comparison():
+    # 獲取所有部門
+    departments = Department.query.all()
+    department_data = {}
+    
+    for dept in departments:
+        # 獲取部門所有員工的評估數據
+        dept_feedbacks = Feedback.query.join(User, Feedback.target_id == User.id)\
+            .filter(User.department_id == dept.id, Feedback.status == 'completed').all()
+        
+        if dept_feedbacks:
+            dept_scores = []
+            for feedback in dept_feedbacks:
+                scores = [
+                    feedback.leadership,
+                    feedback.communication_skills,
+                    feedback.technical_knowledge,
+                    feedback.collaboration,
+                    feedback.innovation
+                ]
+                avg_score = sum(filter(None, scores)) / len([s for s in scores if s is not None])
+                dept_scores.append(avg_score)
+            
+            department_data[dept.name] = round(sum(dept_scores) / len(dept_scores), 2)
+        else:
+            department_data[dept.name] = 0
+    
+    return render_template('admin/department_comparison.html', department_data=department_data)
+
+@app.route('/admin/goal_management')
+@login_required
+@admin_required
+def goal_management():
+    goals = PerformanceGoal.query.all()
+    users = User.query.all()
+    return render_template('admin/goal_management.html', goals=goals, users=users)
+
+@app.route('/admin/goals/create', methods=['POST'])
+@login_required
+@admin_required
+def create_goal():
+    try:
+        form_data = request.form
+        
+        goal = PerformanceGoal(
+            description=form_data['description'],
+            assignee_id=form_data['assignee'],
+            goal_type=form_data['goal_type'],
+            start_date=datetime.strptime(form_data['start_date'], '%Y-%m-%d').date(),
+            target_date=datetime.strptime(form_data['target_date'], '%Y-%m-%d').date()
+        )
+        
+        db.session.add(goal)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/admin/goals/<int:goal_id>/delete', methods=['DELETE'])
+@login_required
+@admin_required
+def delete_goal(goal_id):
+    try:
+        goal = PerformanceGoal.query.get_or_404(goal_id)
+        db.session.delete(goal)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/admin/goals/<int:goal_id>/update', methods=['POST'])
+@login_required
+@admin_required
+def update_goal(goal_id):
+    try:
+        goal = PerformanceGoal.query.get_or_404(goal_id)
+        form_data = request.form
+        
+        goal.description = form_data.get('description', goal.description)
+        goal.progress = int(form_data.get('progress', goal.progress))
+        goal.status = form_data.get('status', goal.status)
+        
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+
+# 新增績效目標模型
+class PerformanceGoal(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.Text, nullable=False)
+    assignee_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False)
+    target_date = db.Column(db.DateTime, nullable=False)
+    goal_type = db.Column(db.String(20), nullable=False)  # 個人、部門、公司
+    status = db.Column(db.String(20), nullable=False)  # 進行中、已完成、已逾期
+    progress = db.Column(db.Integer, default=0)  # 進度百分比
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    assignee = db.relationship('User', backref='performance_goals')
+
+    @property
+    def type_color(self):
+        return {
+            '個人': 'info',
+            '部門': 'primary',
+            '公司': 'success'
+        }.get(self.goal_type, 'secondary')
+    
+    @property
+    def status_color(self):
+        return {
+            '進行中': 'primary',
+            '已完成': 'success',
+            '已逾期': 'danger'
+        }.get(self.status, 'secondary')
+
+@app.route('/admin/feedback/<int:feedback_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_feedback(feedback_id):
+    feedback = Feedback.query.get_or_404(feedback_id)
+    evaluator = User.query.get(feedback.evaluator_id)
+    target = User.query.get(feedback.target_id)
+    
+    if request.method == 'POST':
+        # 更新評估數據
+        feedback.work_quality = request.form.get('work_quality', type=int)
+        feedback.work_efficiency = request.form.get('work_efficiency', type=int)
+        feedback.work_reliability = request.form.get('work_reliability', type=int)
+        
+        feedback.leadership = request.form.get('leadership', type=int)
+        feedback.decision_making = request.form.get('decision_making', type=int)
+        feedback.team_management = request.form.get('team_management', type=int)
+        
+        feedback.collaboration = request.form.get('collaboration', type=int)
+        feedback.interpersonal_skills = request.form.get('interpersonal_skills', type=int)
+        feedback.conflict_resolution = request.form.get('conflict_resolution', type=int)
+        
+        feedback.communication_skills = request.form.get('communication_skills', type=int)
+        feedback.presentation_skills = request.form.get('presentation_skills', type=int)
+        feedback.listening_skills = request.form.get('listening_skills', type=int)
+        
+        feedback.technical_knowledge = request.form.get('technical_knowledge', type=int)
+        feedback.industry_knowledge = request.form.get('industry_knowledge', type=int)
+        feedback.problem_solving = request.form.get('problem_solving', type=int)
+        
+        feedback.work_attitude = request.form.get('work_attitude', type=int)
+        feedback.initiative = request.form.get('initiative', type=int)
+        feedback.responsibility = request.form.get('responsibility', type=int)
+        
+        feedback.innovation = request.form.get('innovation', type=int)
+        feedback.creativity = request.form.get('creativity', type=int)
+        feedback.adaptability = request.form.get('adaptability', type=int)
+        
+        feedback.analytical_thinking = request.form.get('analytical_thinking', type=int)
+        feedback.solution_implementation = request.form.get('solution_implementation', type=int)
+        feedback.risk_management = request.form.get('risk_management', type=int)
+        
+        # 更新文字回饋
+        feedback.strengths = request.form.get('strengths')
+        feedback.improvements = request.form.get('improvements')
+        feedback.suggestions = request.form.get('suggestions')
+        
+        # 更新狀態
+        feedback.status = request.form.get('status', 'pending')
+        if feedback.status == 'completed':
+            feedback.completed_at = datetime.utcnow()
+        
+        db.session.commit()
+        flash('評估任務已成功更新')
+        return redirect(url_for('admin_dashboard'))
+    
+    return render_template('admin/edit_feedback.html', 
+                         feedback=feedback,
+                         evaluator=evaluator,
+                         target=target)
+
+@app.route('/admin/feedback/<int:feedback_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_feedback(feedback_id):
+    feedback = Feedback.query.get_or_404(feedback_id)
+    db.session.delete(feedback)
+    db.session.commit()
+    flash('評估任務已成功刪除')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/simulate_feedback', methods=['POST'])
+@login_required
+@admin_required
+def simulate_feedback():
+    try:
+        # 獲取所有在職使用者
+        users = User.query.filter_by(is_active=True).all()
+        
+        # 為每個使用者創建評估任務
+        for evaluator in users:
+            for target in users:
+                if evaluator != target:  # 不允許自我評估
+                    # 檢查是否已存在相同的評估任務
+                    existing_feedback = Feedback.query.filter_by(
+                        evaluator_id=evaluator.id,
+                        target_id=target.id
+                    ).first()
+                    
+                    if not existing_feedback:
+                        # 創建新的評估任務
+                        feedback = Feedback(
+                            evaluator_id=evaluator.id,
+                            target_id=target.id,
+                            status='completed',
+                            completed_at=datetime.now(),
+                            # 模擬評估分數（1-5分）
+                            work_quality=random.randint(3, 5),
+                            work_efficiency=random.randint(3, 5),
+                            work_reliability=random.randint(3, 5),
+                            leadership=random.randint(3, 5),
+                            decision_making=random.randint(3, 5),
+                            team_management=random.randint(3, 5),
+                            collaboration=random.randint(3, 5),
+                            interpersonal_skills=random.randint(3, 5),
+                            conflict_resolution=random.randint(3, 5),
+                            communication_skills=random.randint(3, 5),
+                            presentation_skills=random.randint(3, 5),
+                            listening_skills=random.randint(3, 5),
+                            technical_knowledge=random.randint(3, 5),
+                            industry_knowledge=random.randint(3, 5),
+                            problem_solving=random.randint(3, 5),
+                            work_attitude=random.randint(3, 5),
+                            initiative=random.randint(3, 5),
+                            responsibility=random.randint(3, 5),
+                            innovation=random.randint(3, 5),
+                            creativity=random.randint(3, 5),
+                            adaptability=random.randint(3, 5),
+                            analytical_thinking=random.randint(3, 5),
+                            solution_implementation=random.randint(3, 5),
+                            risk_management=random.randint(3, 5),
+                            # 模擬文字回饋
+                            strengths=f"{target.full_name}在{random.choice(['工作能力', '團隊合作', '專業知識'])}方面表現出色。",
+                            improvements=f"建議在{random.choice(['溝通技巧', '時間管理', '創新思維'])}方面可以進一步提升。",
+                            suggestions=f"建議多參與{random.choice(['跨部門專案', '專業培訓', '團隊活動'])}以提升能力。"
+                        )
+                        db.session.add(feedback)
+        
+        db.session.commit()
+        flash('模擬問卷填寫完成！', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'模擬過程中發生錯誤：{str(e)}', 'danger')
+    
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/feedback/analysis', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def feedback_analysis():
+    # 獲取篩選參數
+    selected_analysis_type = request.form.get('analysis_type', 'overall')
+    selected_time_range = request.form.get('time_range', 'all')
+    selected_department = request.form.get('department', '')
+    selected_user = request.form.get('user', '')
+
+    # 獲取所有部門和用戶
+    departments = Department.query.all()
+    users = User.query.all()
+
+    # 基礎查詢
+    query = Feedback.query.filter_by(status='completed')
+
+    # 根據時間範圍過濾
+    if selected_time_range != 'all':
+        now = datetime.now()
+        if selected_time_range == 'month':
+            query = query.filter(Feedback.created_at >= now.replace(day=1))
+        elif selected_time_range == 'quarter':
+            query = query.filter(Feedback.created_at >= now.replace(month=((now.month-1)//3)*3+1, day=1))
+        elif selected_time_range == 'year':
+            query = query.filter(Feedback.created_at >= now.replace(month=1, day=1))
+
+    # 根據部門過濾
+    if selected_department:
+        query = query.join(User, Feedback.target_id == User.id).filter(User.department_id == selected_department)
+
+    # 根據用戶過濾
+    if selected_user:
+        query = query.filter(Feedback.target_id == selected_user)
+
+    # 獲取篩選後的問卷
+    filtered_feedbacks = query.all()
+
+    # 計算問卷完成率
+    total_tasks = Feedback.query
+    if selected_department:
+        total_tasks = total_tasks.join(User, Feedback.target_id == User.id).filter(User.department_id == selected_department)
+    if selected_user:
+        total_tasks = total_tasks.filter(Feedback.target_id == selected_user)
+
+    completion_rate = {
+        'completed': len(filtered_feedbacks),
+        'pending': total_tasks.filter_by(status='pending').count()
+    }
+
+    # 定義評估維度
+    dimension_labels = ['領導力', '溝通技巧', '專業知識', '團隊合作', '創新能力']
+    dimension_fields = {
+        '領導力': ['leadership', 'decision_making', 'team_management'],
+        '溝通技巧': ['communication_skills', 'presentation_skills', 'listening_skills'],
+        '專業知識': ['technical_knowledge', 'industry_knowledge', 'problem_solving'],
+        '團隊合作': ['collaboration', 'interpersonal_skills', 'conflict_resolution'],
+        '創新能力': ['innovation', 'creativity', 'adaptability']
+    }
+
+    # 計算各維度平均分數
+    dimension_scores = []
+    overall_scores = []
+    detailed_stats = []
+
+    for label, fields in dimension_fields.items():
+        scores = []
+        for feedback in filtered_feedbacks:
+            # 計算該維度的平均分數
+            dimension_scores_sum = sum(getattr(feedback, field, 0) or 0 for field in fields)
+            dimension_avg = dimension_scores_sum / len(fields) if dimension_scores_sum > 0 else 0
+            if dimension_avg > 0:
+                scores.append(dimension_avg)
+
+        if scores:
+            avg = sum(scores) / len(scores)
+            dimension_scores.append(round(avg, 2))
+            overall_scores.append(round(avg, 2))
+            
+            detailed_stats.append({
+                'name': label,
+                'average': avg,
+                'max': max(scores),
+                'min': min(scores),
+                'std_dev': (sum((x - avg) ** 2 for x in scores) / len(scores)) ** 0.5,
+                'sample_size': len(scores),
+                'trend': [round(avg, 2)]  # 簡化的趨勢數據
+            })
+        else:
+            dimension_scores.append(0)
+            overall_scores.append(0)
+            detailed_stats.append({
+                'name': label,
+                'average': 0,
+                'max': 0,
+                'min': 0,
+                'std_dev': 0,
+                'sample_size': 0,
+                'trend': [0]
+            })
+
+    # 準備落點分析數據
+    scatter_plot_data = []
+    if selected_analysis_type == 'scatter':
+        for feedback in filtered_feedbacks:
+            user = User.query.get(feedback.target_id)
+            if user:
+                scores = {}
+                for label, fields in dimension_fields.items():
+                    dimension_scores_sum = sum(getattr(feedback, field, 0) or 0 for field in fields)
+                    dimension_avg = dimension_scores_sum / len(fields) if dimension_scores_sum > 0 else 0
+                    scores[label] = round(dimension_avg, 2)
+                
+                scatter_plot_data.append({
+                    'username': user.username,
+                    'department': user.department.name if user.department else '未分配部門',
+                    'scores': scores
+                })
+
+    # 準備個人分析數據
+    personal_analysis = None
+    if selected_analysis_type == 'personal' and selected_user:
+        user = User.query.get(selected_user)
+        if user:
+            user_feedbacks = query.filter_by(target_id=selected_user).all()
+            average_scores = {}
+            
+            for label, fields in dimension_fields.items():
+                scores = []
+                for feedback in user_feedbacks:
+                    dimension_scores_sum = sum(getattr(feedback, field, 0) or 0 for field in fields)
+                    dimension_avg = dimension_scores_sum / len(fields) if dimension_scores_sum > 0 else 0
+                    if dimension_avg > 0:
+                        scores.append(dimension_avg)
+                
+                if scores:
+                    avg = sum(scores) / len(scores)
+                    average_scores[label] = {
+                        'average': avg,
+                        'max': max(scores),
+                        'min': min(scores),
+                        'std_dev': (sum((x - avg) ** 2 for x in scores) / len(scores)) ** 0.5,
+                        'sample_size': len(scores)
+                    }
+                else:
+                    average_scores[label] = {
+                        'average': 0,
+                        'max': 0,
+                        'min': 0,
+                        'std_dev': 0,
+                        'sample_size': 0
+                    }
+            
+            personal_analysis = {
+                'user': user,
+                'total_feedbacks': len(user_feedbacks),
+                'completed_feedbacks': len([f for f in user_feedbacks if f.status == 'completed']),
+                'average_scores': average_scores
+            }
+
+    return render_template('admin/feedback_analysis.html',
+                         selected_analysis_type=selected_analysis_type,
+                         selected_time_range=selected_time_range,
+                         selected_department=selected_department,
+                         selected_user=selected_user,
+                         departments=departments,
+                         users=users,
+                         completion_rate=completion_rate,
+                         dimension_labels=dimension_labels,
+                         dimension_scores=dimension_scores,
+                         overall_scores=overall_scores,
+                         detailed_stats=detailed_stats,
+                         scatter_plot_data=scatter_plot_data,
+                         personal_analysis=personal_analysis)
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
@@ -765,19 +1652,55 @@ if __name__ == '__main__':
                 username='David',
                 password=generate_password_hash('12345678'),
                 is_admin=True,
+                employee_id='EMP001',
+                full_name='David Chen',
+                position='系統管理員',
                 department_id=1  # 預設分配到研發部
             )
             db.session.add(admin)
         
         # 創建測試用戶
-        test_users = ['user1', 'user2', 'user3', 'user4']
-        for i, username in enumerate(test_users):
-            if not User.query.filter_by(username=username).first():
+        test_users = [
+            {
+                'username': 'user1',
+                'employee_id': 'EMP002',
+                'full_name': '王小明',
+                'position': '工程師',
+                'department_id': 1
+            },
+            {
+                'username': 'user2',
+                'employee_id': 'EMP003',
+                'full_name': '李小華',
+                'position': '專員',
+                'department_id': 2
+            },
+            {
+                'username': 'user3',
+                'employee_id': 'EMP004',
+                'full_name': '張小美',
+                'position': '主管',
+                'department_id': 3
+            },
+            {
+                'username': 'user4',
+                'employee_id': 'EMP005',
+                'full_name': '陳小強',
+                'position': '經理',
+                'department_id': 4
+            }
+        ]
+        
+        for user_data in test_users:
+            if not User.query.filter_by(username=user_data['username']).first():
                 user = User(
-                    username=username,
+                    username=user_data['username'],
                     password=generate_password_hash('12345678'),
                     is_admin=False,
-                    department_id=(i % 4) + 1  # 輪流分配到不同部門
+                    employee_id=user_data['employee_id'],
+                    full_name=user_data['full_name'],
+                    position=user_data['position'],
+                    department_id=user_data['department_id']
                 )
                 db.session.add(user)
         

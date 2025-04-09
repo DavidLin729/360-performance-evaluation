@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h4>編輯評估任務</h4>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>評估者：{{ evaluator.full_name }}</h5>
+                    <p>部門：{{ evaluator.department.name if evaluator.department else '未分配' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h5>受評者：{{ target.full_name }}</h5>
+                    <p>部門：{{ target.department.name if target.department else '未分配' }}</p>
+                </div>
+            </div>
+
+            <form method="POST">
+                <!-- 工作能力評估 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>工作能力評估</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">工作品質</label>
+                                    <select class="form-select" name="work_quality">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.work_quality == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">工作效率</label>
+                                    <select class="form-select" name="work_efficiency">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.work_efficiency == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">工作可靠度</label>
+                                    <select class="form-select" name="work_reliability">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.work_reliability == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 領導力評估 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>領導力評估</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">領導能力</label>
+                                    <select class="form-select" name="leadership">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.leadership == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">決策能力</label>
+                                    <select class="form-select" name="decision_making">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.decision_making == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">團隊管理</label>
+                                    <select class="form-select" name="team_management">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.team_management == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 團隊合作 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>團隊合作</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">協作能力</label>
+                                    <select class="form-select" name="collaboration">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.collaboration == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">人際關係</label>
+                                    <select class="form-select" name="interpersonal_skills">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.interpersonal_skills == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">衝突處理</label>
+                                    <select class="form-select" name="conflict_resolution">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.conflict_resolution == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 溝通能力 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>溝通能力</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">溝通技巧</label>
+                                    <select class="form-select" name="communication_skills">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.communication_skills == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">表達能力</label>
+                                    <select class="form-select" name="presentation_skills">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.presentation_skills == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">傾聽能力</label>
+                                    <select class="form-select" name="listening_skills">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.listening_skills == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 專業知識 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>專業知識</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">專業知識</label>
+                                    <select class="form-select" name="technical_knowledge">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.technical_knowledge == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">產業知識</label>
+                                    <select class="form-select" name="industry_knowledge">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.industry_knowledge == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">問題解決</label>
+                                    <select class="form-select" name="problem_solving">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.problem_solving == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 工作態度 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>工作態度</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">工作態度</label>
+                                    <select class="form-select" name="work_attitude">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.work_attitude == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">主動性</label>
+                                    <select class="form-select" name="initiative">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.initiative == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">責任感</label>
+                                    <select class="form-select" name="responsibility">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.responsibility == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 創新思維 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>創新思維</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">創新能力</label>
+                                    <select class="form-select" name="innovation">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.innovation == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">創造力</label>
+                                    <select class="form-select" name="creativity">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.creativity == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">適應能力</label>
+                                    <select class="form-select" name="adaptability">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.adaptability == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 問題解決能力 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>問題解決能力</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">分析思考</label>
+                                    <select class="form-select" name="analytical_thinking">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.analytical_thinking == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">解決方案實施</label>
+                                    <select class="form-select" name="solution_implementation">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.solution_implementation == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">風險管理</label>
+                                    <select class="form-select" name="risk_management">
+                                        <option value="">請選擇</option>
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}" {% if feedback.risk_management == i %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 文字回饋 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>文字回饋</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">優點</label>
+                            <textarea class="form-control" name="strengths" rows="3">{{ feedback.strengths or '' }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">待改善項目</label>
+                            <textarea class="form-control" name="improvements" rows="3">{{ feedback.improvements or '' }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">建議</label>
+                            <textarea class="form-control" name="suggestions" rows="3">{{ feedback.suggestions or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 狀態 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>狀態</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">評估狀態</label>
+                            <select class="form-select" name="status">
+                                <option value="pending" {% if feedback.status == 'pending' %}selected{% endif %}>進行中</option>
+                                <option value="completed" {% if feedback.status == 'completed' %}selected{% endif %}>已完成</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">返回</a>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

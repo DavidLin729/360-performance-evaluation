@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>績效趨勢分析</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">管理者儀表板</a></li>
+                    <li class="breadcrumb-item active">績效趨勢分析</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">整體績效趨勢</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">季度數據明細</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>季度</th>
+                                    <th>平均分數</th>
+                                    <th>變化趨勢</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set prev_score = 0 %}
+                                {% for quarter, score in trend_data.items() %}
+                                <tr>
+                                    <td>{{ quarter }}</td>
+                                    <td>{{ score }}</td>
+                                    <td>
+                                        {% if prev_score > 0 %}
+                                            {% if score > prev_score %}
+                                                <span class="text-success">
+                                                    <i class="fas fa-arrow-up"></i>
+                                                    {{ ((score - prev_score) / prev_score * 100)|round(1) }}%
+                                                </span>
+                                            {% elif score < prev_score %}
+                                                <span class="text-danger">
+                                                    <i class="fas fa-arrow-down"></i>
+                                                    {{ ((prev_score - score) / prev_score * 100)|round(1) }}%
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">
+                                                    <i class="fas fa-minus"></i>
+                                                    0%
+                                                </span>
+                                            {% endif %}
+                                        {% endif %}
+                                        {% set prev_score = score %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">趨勢分析報告</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-chart-line"></i> 整體趨勢</h6>
+                        <p>
+                            {% set total_change = trend_data['Q4'] - trend_data['Q1'] %}
+                            {% if total_change > 0 %}
+                            本年度整體績效呈上升趨勢，從第一季度的 {{ trend_data['Q1'] }} 提升至第四季度的 {{ trend_data['Q4'] }}，
+                            總體提升了 {{ (total_change / trend_data['Q1'] * 100)|round(1) }}%。
+                            {% elif total_change < 0 %}
+                            本年度整體績效呈下降趨勢，從第一季度的 {{ trend_data['Q1'] }} 下降至第四季度的 {{ trend_data['Q4'] }}，
+                            總體下降了 {{ ((-total_change) / trend_data['Q1'] * 100)|round(1) }}%。
+                            {% else %}
+                            本年度整體績效保持穩定，維持在 {{ trend_data['Q1'] }} 的水平。
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-lightbulb"></i> 改善建議</h6>
+                        <ul class="mb-0">
+                            {% if total_change < 0 %}
+                            <li>建議進行員工訪談，了解績效下滑原因</li>
+                            <li>考慮提供額外的培訓和支援</li>
+                            <li>檢討現有的工作流程和資源分配</li>
+                            {% else %}
+                            <li>持續保持現有的管理方式和激勵機制</li>
+                            <li>可以考慮讓表現優異的員工分享經驗</li>
+                            <li>設定更具挑戰性的目標以促進持續成長</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    const trend_data = {{ trend_data|tojson }};
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Object.keys(trend_data),
+            datasets: [{
+                label: '季度平均績效',
+                data: Object.values(trend_data),
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 5,
+                    title: {
+                        display: true,
+                        text: '績效評分'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: '季度'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: '季度績效趨勢圖'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

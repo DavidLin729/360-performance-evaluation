@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>目標管理</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">管理者儀表板</a></li>
+                    <li class="breadcrumb-item active">目標管理</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">績效目標列表</h5>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newGoalModal">
+                        <i class="fas fa-plus"></i> 新增目標
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>目標描述</th>
+                                    <th>負責人</th>
+                                    <th>目標類型</th>
+                                    <th>開始日期</th>
+                                    <th>目標日期</th>
+                                    <th>進度</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for goal in goals %}
+                                <tr>
+                                    <td>{{ goal.description }}</td>
+                                    <td>{{ goal.assignee.full_name }}</td>
+                                    <td>
+                                        <span class="badge {% if goal.goal_type == '個人' %}bg-info{% elif goal.goal_type == '部門' %}bg-primary{% else %}bg-success{% endif %}">
+                                            {{ goal.goal_type }}
+                                        </span>
+                                    </td>
+                                    <td>{{ goal.start_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ goal.target_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" style="width: {{ goal.progress }}%">
+                                                {{ goal.progress }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if goal.status == '進行中' %}bg-primary{% elif goal.status == '已完成' %}bg-success{% else %}bg-warning{% endif %}">
+                                            {{ goal.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-info" onclick="editGoal({{ goal.id }})">
+                                                <i class="fas fa-edit"></i> 編輯
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteGoal({{ goal.id }})">
+                                                <i class="fas fa-trash"></i> 刪除
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 目標統計 -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">目標完成率</h5>
+                    <canvas id="goalCompletionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">目標類型分布</h5>
+                    <canvas id="goalTypeChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">目標達成情況</h5>
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            進行中
+                            <span class="badge bg-primary rounded-pill">{{ goals|selectattr('status', 'equalto', '進行中')|list|length }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            已完成
+                            <span class="badge bg-success rounded-pill">{{ goals|selectattr('status', 'equalto', '已完成')|list|length }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            已逾期
+                            <span class="badge bg-danger rounded-pill">{{ goals|selectattr('status', 'equalto', '已逾期')|list|length }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增目標Modal -->
+<div class="modal fade" id="newGoalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增績效目標</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="goalForm">
+                    <div class="mb-3">
+                        <label class="form-label">目標描述</label>
+                        <textarea class="form-control" name="description" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">負責人</label>
+                        <select class="form-control" name="assignee" required>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">開始日期</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">目標日期</label>
+                                <input type="date" class="form-control" name="target_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">目標類型</label>
+                        <select class="form-control" name="goal_type" required>
+                            <option value="個人">個人目標</option>
+                            <option value="部門">部門目標</option>
+                            <option value="公司">公司目標</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveGoal()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 目標完成率圖表
+    const completionCtx = document.getElementById('goalCompletionChart').getContext('2d');
+    new Chart(completionCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['已完成', '進行中', '已逾期'],
+            datasets: [{
+                data: [
+                    {{ goals|selectattr('status', 'equalto', '已完成')|list|length }},
+                    {{ goals|selectattr('status', 'equalto', '進行中')|list|length }},
+                    {{ goals|selectattr('status', 'equalto', '已逾期')|list|length }}
+                ],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(0, 123, 255, 0.8)',
+                    'rgba(220, 53, 69, 0.8)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // 目標類型分布圖表
+    const typeCtx = document.getElementById('goalTypeChart').getContext('2d');
+    new Chart(typeCtx, {
+        type: 'pie',
+        data: {
+            labels: ['個人目標', '部門目標', '公司目標'],
+            datasets: [{
+                data: [
+                    {{ goals|selectattr('goal_type', 'equalto', '個人')|list|length }},
+                    {{ goals|selectattr('goal_type', 'equalto', '部門')|list|length }},
+                    {{ goals|selectattr('goal_type', 'equalto', '公司')|list|length }}
+                ],
+                backgroundColor: [
+                    'rgba(23, 162, 184, 0.8)',
+                    'rgba(0, 123, 255, 0.8)',
+                    'rgba(40, 167, 69, 0.8)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+});
+
+function saveGoal() {
+    const form = document.getElementById('goalForm');
+    const formData = new FormData(form);
+    
+    fetch('/admin/goals/create', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('保存失敗：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('保存失敗，請稍後再試');
+    });
+}
+
+function editGoal(goalId) {
+    // 實現編輯目標的邏輯
+}
+
+function deleteGoal(goalId) {
+    if (!confirm('確定要刪除此目標嗎？')) return;
+    
+    fetch(`/admin/goals/${goalId}/delete`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('刪除失敗：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('刪除失敗，請稍後再試');
+    });
+}
+</script>
+{% endblock %} 

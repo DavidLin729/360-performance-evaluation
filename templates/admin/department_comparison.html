@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>部門績效比較</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">管理者儀表板</a></li>
+                    <li class="breadcrumb-item active">部門績效比較</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">部門績效對比</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="departmentChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">部門績效數據</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>部門</th>
+                                    <th>平均分數</th>
+                                    <th>與公司平均的差異</th>
+                                    <th>評估狀態</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set company_avg = department_data.values()|list|sum / department_data.values()|list|length %}
+                                {% for dept, score in department_data.items() %}
+                                <tr>
+                                    <td>{{ dept }}</td>
+                                    <td>{{ score }}</td>
+                                    <td>
+                                        {% set diff = score - company_avg %}
+                                        {% if diff > 0 %}
+                                            <span class="text-success">
+                                                <i class="fas fa-arrow-up"></i>
+                                                {{ (diff)|round(2) }}
+                                            </span>
+                                        {% elif diff < 0 %}
+                                            <span class="text-danger">
+                                                <i class="fas fa-arrow-down"></i>
+                                                {{ (-diff)|round(2) }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">
+                                                <i class="fas fa-minus"></i>
+                                                0
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if score >= 4.0 %}
+                                            <span class="badge bg-success">優秀</span>
+                                        {% elif score >= 3.0 %}
+                                            <span class="badge bg-primary">良好</span>
+                                        {% elif score >= 2.0 %}
+                                            <span class="badge bg-warning">待改進</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">需關注</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-info">
+                                    <td><strong>公司平均</strong></td>
+                                    <td colspan="3"><strong>{{ company_avg|round(2) }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">分析報告</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-chart-pie"></i> 整體表現</h6>
+                        <p>公司整體平均績效為 {{ company_avg|round(2) }}</p>
+                        {% set max_dept = department_data.items()|list|sort(attribute=1, reverse=True)|first %}
+                        {% set min_dept = department_data.items()|list|sort(attribute=1)|first %}
+                        <ul>
+                            <li>表現最佳部門：{{ max_dept[0] }} ({{ max_dept[1] }})</li>
+                            <li>最需改進部門：{{ min_dept[0] }} ({{ min_dept[1] }})</li>
+                        </ul>
+                    </div>
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-lightbulb"></i> 改善建議</h6>
+                        <ul class="mb-0">
+                            <li>建議 {{ min_dept[0] }} 可以向 {{ max_dept[0] }} 學習優秀實踐</li>
+                            <li>針對績效差異較大的部門進行深入分析</li>
+                            <li>制定部門間知識共享和經驗交流機制</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('departmentChart').getContext('2d');
+    const dept_data = {{ department_data|tojson }};
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(dept_data),
+            datasets: [{
+                label: '部門平均績效',
+                data: Object.values(dept_data),
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.5)',
+                    'rgba(54, 162, 235, 0.5)',
+                    'rgba(255, 206, 86, 0.5)',
+                    'rgba(75, 192, 192, 0.5)',
+                    'rgba(153, 102, 255, 0.5)'
+                ],
+                borderColor: [
+                    'rgb(255, 99, 132)',
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 206, 86)',
+                    'rgb(75, 192, 192)',
+                    'rgb(153, 102, 255)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 5,
+                    title: {
+                        display: true,
+                        text: '績效評分'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: '部門績效對比圖'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 
