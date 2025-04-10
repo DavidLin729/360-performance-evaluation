@@ -119,6 +119,26 @@
             margin-bottom: 20px;
             font-size: 0.9em;
         }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            display: none;
+        }
+        
+        .alert-success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .alert-error {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
     </style>
 </head>
 <body>
@@ -128,19 +148,13 @@
         </div>
 
         <div class="form-container">
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="error-message">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+            <div id="alert" class="alert"></div>
 
             <div class="warning-message">
                 注意：請確保評估者和受評者不是同一人，且該評估任務尚未存在。
             </div>
 
-            <form method="POST">
+            <form id="feedbackForm">
                 <div class="form-group">
                     <label for="evaluator_id">評估者</label>
                     <select id="evaluator_id" name="evaluator_id" required>
@@ -170,16 +184,51 @@
     </div>
 
     <script>
-        // 防止選擇同一個人作為評估者和受評者
-        document.querySelector('form').addEventListener('submit', function(e) {
+        document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
             const evaluatorId = document.getElementById('evaluator_id').value;
             const targetId = document.getElementById('target_id').value;
             
             if (evaluatorId === targetId) {
-                e.preventDefault();
-                alert('評估者和受評者不能是同一人！');
+                showAlert('評估者和受評者不能是同一人！', 'error');
+                return;
             }
+            
+            // 發送 AJAX 請求
+            fetch('/admin/feedback/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    evaluator_id: evaluatorId,
+                    target_id: targetId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    setTimeout(() => {
+                        window.location.href = '/admin/dashboard';
+                    }, 1500);
+                } else {
+                    showAlert(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showAlert('建立評估任務時發生錯誤，請稍後再試', 'error');
+                console.error('Error:', error);
+            });
         });
+        
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+        }
     </script>
 </body>
 </html> 

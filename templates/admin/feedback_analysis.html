@@ -1,39 +1,39 @@
 {% extends "base.html" %}
+{% from "admin/components/navigation.html" import admin_navigation %}
 
 {% block content %}
 <div class="container mt-4">
-    <h2>360度問卷分析</h2>
+    {{ admin_navigation() }}
     
-    <!-- 篩選表單 -->
-    <form method="POST" class="mb-4">
-        <div class="row">
-            <div class="col-md-3">
-                <div class="form-group">
-                    <label for="analysis_type">分析類型</label>
-                    <select class="form-control" id="analysis_type" name="analysis_type">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>360度問卷分析</h2>
+    </div>
+
+    <!-- 篩選條件 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="POST" class="row g-3">
+                <div class="col-md-3">
+                    <label for="analysis_type" class="form-label">分析類型</label>
+                    <select class="form-select" id="analysis_type" name="analysis_type">
                         <option value="overall" {% if selected_analysis_type == 'overall' %}selected{% endif %}>整體分析</option>
-                        <option value="department" {% if selected_analysis_type == 'department' %}selected{% endif %}>部門分析</option>
                         <option value="personal" {% if selected_analysis_type == 'personal' %}selected{% endif %}>個人分析</option>
                         <option value="scatter" {% if selected_analysis_type == 'scatter' %}selected{% endif %}>落點分析</option>
                     </select>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="form-group">
-                    <label for="time_range">時間範圍</label>
-                    <select class="form-control" id="time_range" name="time_range">
+                <div class="col-md-3">
+                    <label for="time_range" class="form-label">時間範圍</label>
+                    <select class="form-select" id="time_range" name="time_range">
                         <option value="all" {% if selected_time_range == 'all' %}selected{% endif %}>全部時間</option>
                         <option value="month" {% if selected_time_range == 'month' %}selected{% endif %}>本月</option>
                         <option value="quarter" {% if selected_time_range == 'quarter' %}selected{% endif %}>本季</option>
                         <option value="year" {% if selected_time_range == 'year' %}selected{% endif %}>本年</option>
                     </select>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="form-group">
-                    <label for="department">部門</label>
-                    <select class="form-control" id="department" name="department">
-                        <option value="">全部部門</option>
+                <div class="col-md-3">
+                    <label for="department" class="form-label">部門</label>
+                    <select class="form-select" id="department" name="department">
+                        <option value="">所有部門</option>
                         {% for dept in departments %}
                         <option value="{{ dept.id }}" {% if selected_department|string == dept.id|string %}selected{% endif %}>
                             {{ dept.name }}
@@ -41,197 +41,66 @@
                         {% endfor %}
                     </select>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="form-group">
-                    <label for="user">員工</label>
-                    <select class="form-control" id="user" name="user">
-                        <option value="">選擇員工</option>
+                <div class="col-md-3">
+                    <label for="user" class="form-label">員工</label>
+                    <select class="form-select" id="user" name="user">
+                        <option value="">所有員工</option>
                         {% for user in users %}
                         <option value="{{ user.id }}" {% if selected_user|string == user.id|string %}selected{% endif %}>
-                            {{ user.username }} ({{ user.department.name if user.department else '未分配部門' }})
+                            {{ user.full_name or user.username }}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
-            </div>
-            <div class="col-12 mt-3">
-                <button type="submit" class="btn btn-primary">分析</button>
-            </div>
-        </div>
-    </form>
-
-    {% if selected_analysis_type == 'scatter' %}
-    <!-- 落點分析 -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="card-title mb-0">落點分析</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="x_axis">X軸維度</label>
-                        <select class="form-control" id="x_axis">
-                            {% for label in dimension_labels %}
-                            <option value="{{ label }}">{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="y_axis">Y軸維度</label>
-                        <select class="form-control" id="y_axis">
-                            {% for label in dimension_labels %}
-                            <option value="{{ label }}">{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-4">
-                <canvas id="scatterChart"></canvas>
-            </div>
-            <div class="mt-4">
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>員工</th>
-                                <th>部門</th>
-                                <th>X軸分數</th>
-                                <th>Y軸分數</th>
-                            </tr>
-                        </thead>
-                        <tbody id="scatterTableBody">
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if personal_analysis %}
-    <!-- 個人分析結果 -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="card-title mb-0">{{ personal_analysis.user.username }} 的個人分析</h5>
-        </div>
-        <div class="card-body">
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <h6>基本資訊</h6>
-                    <p>部門：{{ personal_analysis.user.department.name if personal_analysis.user.department else '未分配部門' }}</p>
-                    <p>總評估數：{{ personal_analysis.total_feedbacks }}</p>
-                    <p>已完成評估：{{ personal_analysis.completed_feedbacks }}</p>
-                    <p>完成率：{{ "%.1f"|format(personal_analysis.completed_feedbacks / personal_analysis.total_feedbacks * 100) }}%</p>
-                </div>
-                <div class="col-md-6">
-                    <canvas id="personalCompletionChart"></canvas>
-                </div>
-            </div>
-
-            <!-- 個人能力雷達圖 -->
-            <div class="row mb-4">
                 <div class="col-12">
-                    <h6>個人能力分布</h6>
-                    <canvas id="personalRadarChart"></canvas>
+                    <button type="submit" class="btn btn-primary">分析</button>
                 </div>
-            </div>
-
-            <h6>各維度評分分析</h6>
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>評估維度</th>
-                            <th>平均分數</th>
-                            <th>最高分</th>
-                            <th>最低分</th>
-                            <th>標準差</th>
-                            <th>評估人數</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for label, stats in personal_analysis.average_scores.items() %}
-                        <tr>
-                            <td>{{ label }}</td>
-                            <td>{{ "%.2f"|format(stats.average) }}</td>
-                            <td>{{ stats.max }}</td>
-                            <td>{{ stats.min }}</td>
-                            <td>{{ "%.2f"|format(stats.std_dev) }}</td>
-                            <td>{{ stats.sample_size }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            </form>
         </div>
     </div>
-    {% endif %}
 
-    <!-- 問卷完成率 -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="card-title mb-0">問卷完成率</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <canvas id="completionChart"></canvas>
-                </div>
-                <div class="col-md-6">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>狀態</th>
-                                    <th>數量</th>
-                                    <th>百分比</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>已完成</td>
-                                    <td>{{ completion_rate.completed }}</td>
-                                    <td>{{ "%.1f"|format(completion_rate.completed / (completion_rate.completed + completion_rate.pending) * 100) }}%</td>
-                                </tr>
-                                <tr>
-                                    <td>待完成</td>
-                                    <td>{{ completion_rate.pending }}</td>
-                                    <td>{{ "%.1f"|format(completion_rate.pending / (completion_rate.completed + completion_rate.pending) * 100) }}%</td>
-                                </tr>
-                            </tbody>
-                        </table>
+    <!-- 完成率統計 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">問卷完成率</h5>
+                    {% if completion_rate.completed + completion_rate.pending > 0 %}
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ (completion_rate.completed / (completion_rate.completed + completion_rate.pending) * 100)|round }}%">
+                            {{ (completion_rate.completed / (completion_rate.completed + completion_rate.pending) * 100)|round }}%
+                        </div>
                     </div>
+                    <p class="card-text">
+                        已完成：{{ completion_rate.completed }} 筆<br>
+                        待完成：{{ completion_rate.pending }} 筆
+                    </p>
+                    {% else %}
+                    <p class="card-text">目前沒有進行中的問卷</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 評估維度分析 -->
+    <!-- 整體分析 -->
+    {% if selected_analysis_type == 'overall' %}
     <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="card-title mb-0">評估維度分析</h5>
-        </div>
         <div class="card-body">
-            <canvas id="dimensionChart"></canvas>
+            <h5 class="card-title">各維度平均分數</h5>
+            <canvas id="radarChart"></canvas>
         </div>
     </div>
 
-    <!-- 詳細統計數據 -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">詳細統計數據</h5>
-        </div>
+    <div class="card mb-4">
         <div class="card-body">
+            <h5 class="card-title">詳細統計</h5>
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table">
                     <thead>
                         <tr>
-                            <th>評估維度</th>
+                            <th>維度</th>
                             <th>平均分數</th>
                             <th>最高分</th>
                             <th>最低分</th>
@@ -244,27 +113,13 @@
                         {% for stat in detailed_stats %}
                         <tr>
                             <td>{{ stat.name }}</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="progress flex-grow-1 me-2" style="height: 8px;">
-                                        <div class="progress-bar" role="progressbar" 
-                                             style="width: {{ (stat.average/5)*100 }}%;"
-                                             aria-valuenow="{{ stat.average }}" 
-                                             aria-valuemin="0" 
-                                             aria-valuemax="5">
-                                        </div>
-                                    </div>
-                                    <span>{{ "%.2f"|format(stat.average) }}</span>
-                                </div>
-                            </td>
-                            <td>{{ stat.max }}</td>
-                            <td>{{ stat.min }}</td>
-                            <td>{{ "%.2f"|format(stat.std_dev) }}</td>
+                            <td>{{ stat.average|round(2) }}</td>
+                            <td>{{ stat.max|round(2) }}</td>
+                            <td>{{ stat.min|round(2) }}</td>
+                            <td>{{ stat.std_dev|round(2) }}</td>
                             <td>{{ stat.sample_size }}</td>
                             <td>
-                                <span class="sparkline">
-                                    {{ stat.trend|join(',') }}
-                                </span>
+                                <canvas id="trendChart{{ loop.index }}" height="30"></canvas>
                             </td>
                         </tr>
                         {% endfor %}
@@ -273,65 +128,94 @@
             </div>
         </div>
     </div>
+    {% endif %}
+
+    <!-- 個人分析 -->
+    {% if selected_analysis_type == 'personal' and personal_analysis %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">{{ personal_analysis.user.full_name or personal_analysis.user.username }} 的評估分析</h5>
+            <p>總評估數：{{ personal_analysis.total_feedbacks }} 筆</p>
+            <p>已完成：{{ personal_analysis.completed_feedbacks }} 筆</p>
+            
+            <div class="row mt-4">
+                {% for dimension, scores in personal_analysis.average_scores.items() %}
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ dimension }}</h6>
+                            <p class="card-text">
+                                平均分數：{{ scores.average|round(2) }}<br>
+                                最高分：{{ scores.max|round(2) }}<br>
+                                最低分：{{ scores.min|round(2) }}<br>
+                                標準差：{{ scores.std_dev|round(2) }}<br>
+                                樣本數：{{ scores.sample_size }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 落點分析 -->
+    {% if selected_analysis_type == 'scatter' %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">落點分析圖</h5>
+            <canvas id="scatterChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
-{% endblock %}
-
 {% block scripts %}
-{{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // 問卷完成率圖表
-    const completionCtx = document.getElementById('completionChart').getContext('2d');
-    new Chart(completionCtx, {
-        type: 'pie',
+document.addEventListener('DOMContentLoaded', function() {
+    // 雷達圖
+    {% if selected_analysis_type == 'overall' %}
+    const radarCtx = document.getElementById('radarChart').getContext('2d');
+    new Chart(radarCtx, {
+        type: 'radar',
         data: {
-            labels: ['已完成', '待完成'],
+            labels: {{ dimension_labels|tojson }},
             datasets: [{
-                data: [{{ completion_rate.completed }}, {{ completion_rate.pending }}],
-                backgroundColor: ['#28a745', '#ffc107']
+                label: '平均分數',
+                data: {{ dimension_scores|tojson }},
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
             }]
         },
         options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 5
                 }
             }
         }
     });
 
-    // 評估維度分析圖表
-    const dimensionCtx = document.getElementById('dimensionChart').getContext('2d');
-    new Chart(dimensionCtx, {
-        type: 'bar',
+    // 趨勢圖
+    {% for stat in detailed_stats %}
+    const trendCtx{{ loop.index }} = document.getElementById('trendChart{{ loop.index }}').getContext('2d');
+    new Chart(trendCtx{{ loop.index }}, {
+        type: 'line',
         data: {
-            labels: {{ dimension_labels|tojson }},
-            datasets: [
-                {
-                    label: '當前平均分數',
-                    data: {{ dimension_scores|tojson }},
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                },
-                {
-                    label: '所有問卷平均標準',
-                    data: {{ overall_scores|tojson }},
-                    type: 'line',
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    borderWidth: 2,
-                    fill: false,
-                    pointRadius: 4,
-                    pointBackgroundColor: 'rgba(255, 99, 132, 1)',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2
-                }
-            ]
+            labels: ['趨勢'],
+            datasets: [{
+                label: '{{ stat.name }}',
+                data: {{ stat.trend|tojson }},
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1,
+                pointRadius: 0
+            }]
         },
         options: {
-            responsive: true,
             scales: {
                 y: {
                     beginAtZero: true,
@@ -340,177 +224,45 @@
             },
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    display: false
                 }
             }
         }
     });
-
-    {% if selected_analysis_type == 'scatter' %}
-    // 落點分析圖表
-    const scatterData = {{ scatter_plot_data|tojson }};
-    let scatterChart = null;
-
-    function updateScatterChart() {
-        const xAxis = document.getElementById('x_axis').value;
-        const yAxis = document.getElementById('y_axis').value;
-        
-        const data = scatterData.map(item => ({
-            x: item.scores[xAxis],
-            y: item.scores[yAxis],
-            label: `${item.username} (${item.department})`
-        }));
-
-        if (scatterChart) {
-            scatterChart.destroy();
-        }
-
-        const scatterCtx = document.getElementById('scatterChart').getContext('2d');
-        scatterChart = new Chart(scatterCtx, {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: '員工落點分布',
-                    data: data,
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: xAxis
-                        },
-                        min: 0,
-                        max: 5
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: yAxis
-                        },
-                        min: 0,
-                        max: 5
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.raw.label;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        // 更新表格
-        const tableBody = document.getElementById('scatterTableBody');
-        tableBody.innerHTML = '';
-        data.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${item.label.split(' (')[0]}</td>
-                <td>${item.label.split(' (')[1].replace(')', '')}</td>
-                <td>${item.x.toFixed(2)}</td>
-                <td>${item.y.toFixed(2)}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-    }
-
-    // 監聽軸選擇變化
-    document.getElementById('x_axis').addEventListener('change', updateScatterChart);
-    document.getElementById('y_axis').addEventListener('change', updateScatterChart);
-
-    // 初始化圖表
-    updateScatterChart();
+    {% endfor %}
     {% endif %}
 
-    {% if personal_analysis %}
-    // 個人完成率圖表
-    const personalCompletionCtx = document.getElementById('personalCompletionChart').getContext('2d');
-    new Chart(personalCompletionCtx, {
-        type: 'pie',
+    // 散點圖
+    {% if selected_analysis_type == 'scatter' %}
+    const scatterCtx = document.getElementById('scatterChart').getContext('2d');
+    new Chart(scatterCtx, {
+        type: 'scatter',
         data: {
-            labels: ['已完成', '待完成'],
             datasets: [{
-                data: [
-                    {{ personal_analysis.completed_feedbacks }},
-                    {{ personal_analysis.total_feedbacks - personal_analysis.completed_feedbacks }}
-                ],
-                backgroundColor: ['#28a745', '#ffc107']
+                label: '員工分數分布',
+                data: {{ scatter_plot_data|tojson }},
+                backgroundColor: 'rgba(255, 99, 132, 0.5)'
             }]
         },
         options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-
-    // 個人能力雷達圖
-    const personalRadarCtx = document.getElementById('personalRadarChart').getContext('2d');
-    new Chart(personalRadarCtx, {
-        type: 'radar',
-        data: {
-            labels: Object.keys({{ personal_analysis.average_scores|tojson }}),
-            datasets: [
-                {
-                    label: '個人能力分布',
-                    data: Object.values({{ personal_analysis.average_scores|tojson }}).map(score => score.average),
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 2,
-                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
-                },
-                {
-                    label: '部門平均',
-                    data: {{ dimension_scores|tojson }},
-                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    borderWidth: 2,
-                    pointBackgroundColor: 'rgba(255, 99, 132, 1)',
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgba(255, 99, 132, 1)'
-                }
-            ]
-        },
-        options: {
-            elements: {
-                line: {
-                    tension: 0.4
-                }
-            },
             scales: {
-                r: {
-                    beginAtZero: true,
-                    max: 5,
-                    min: 0,
-                    ticks: {
-                        stepSize: 1
+                x: {
+                    title: {
+                        display: true,
+                        text: '維度1'
                     }
-                }
-            },
-            plugins: {
-                legend: {
-                    position: 'bottom'
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: '維度2'
+                    }
                 }
             }
         }
     });
     {% endif %}
+});
 </script>
+{% endblock %}
 {% endblock %} 

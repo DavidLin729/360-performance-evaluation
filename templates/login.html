@@ -113,6 +113,25 @@
             margin-bottom: 20px;
             text-align: center;
         }
+
+        .alert {
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .alert-error {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-success {
+            background-color: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
     </style>
 </head>
 <body>
@@ -126,9 +145,13 @@
 
         <div class="login-container">
             <h1 class="login-title">登入系統</h1>
-            {% if error %}
-            <div class="error-message">{{ error }}</div>
-            {% endif %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
             <form method="POST">
                 <div class="form-group">
                     <label for="username">使用者名稱</label>

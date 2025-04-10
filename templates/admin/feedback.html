@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% from "admin/components/navigation.html" import admin_navigation %}
+
+{% block content %}
+<div class="container mt-4">
+    {{ admin_navigation() }}
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">360問卷任務管理</h5>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                        <i class="fas fa-plus"></i> 新增問卷任務
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- 任務進度概覽 -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">總任務數</h6>
+                                    <h3 class="mb-0">{{ data.total_tasks }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">已完成任務</h6>
+                                    <h3 class="mb-0">{{ data.completed_tasks }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">進行中任務</h6>
+                                    <h3 class="mb-0">{{ data.in_progress_tasks }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">逾期任務</h6>
+                                    <h3 class="mb-0">{{ data.overdue_tasks }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 任務列表 -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>任務名稱</th>
+                                    <th>被評者</th>
+                                    <th>部門</th>
+                                    <th>開始日期</th>
+                                    <th>截止日期</th>
+                                    <th>完成率</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in data.tasks %}
+                                <tr>
+                                    <td>{{ task.title }}</td>
+                                    <td>{{ task.target_user.full_name }}</td>
+                                    <td>{{ task.target_user.department.name if task.target_user.department else '未分配' }}</td>
+                                    <td>{{ task.start_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ task.end_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: {{ task.completion_rate }}%">
+                                                {{ task.completion_rate }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if task.status == 'completed' %}
+                                            <span class="badge bg-success">已完成</span>
+                                        {% elif task.status == 'in_progress' %}
+                                            <span class="badge bg-warning">進行中</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">逾期</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="viewTaskDetails({{ task.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-primary" onclick="editTask({{ task.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteTask({{ task.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增任務 Modal -->
+<div class="modal fade" id="addTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增問卷任務</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <div class="mb-3">
+                        <label class="form-label">任務名稱</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">被評者</label>
+                        <select class="form-select" name="target_id" required>
+                            <option value="">請選擇被評者</option>
+                            {% for user in data.users %}
+                            <option value="{{ user.id }}">{{ user.full_name }} ({{ user.department.name if user.department else '未分配' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">評分者</label>
+                        <select class="form-select" name="evaluator_id" required>
+                            <option value="">請選擇評分者</option>
+                            {% for user in data.users %}
+                            <option value="{{ user.id }}">{{ user.full_name }} ({{ user.department.name if user.department else '未分配' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">開始日期</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">截止日期</label>
+                                <input type="date" class="form-control" name="end_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">問卷說明</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveTask()">儲存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增問卷任務模態視窗 -->
+<div class="modal fade" id="addFeedbackModal" tabindex="-1" aria-labelledby="addFeedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addFeedbackModalLabel">新增問卷任務</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addFeedbackForm">
+                    <div class="mb-3">
+                        <label for="evaluator_id" class="form-label">評分者</label>
+                        <select class="form-select" id="evaluator_id" name="evaluator_id" required>
+                            <option value="">請選擇評分者</option>
+                            {% for user in data.users %}
+                            <option value="{{ user.id }}">{{ user.full_name }} ({{ user.department.name if user.department else '未分配' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="target_id" class="form-label">被評者</label>
+                        <select class="form-select" id="target_id" name="target_id" required>
+                            <option value="">請選擇被評者</option>
+                            {% for user in data.users %}
+                            <option value="{{ user.id }}">{{ user.full_name }} ({{ user.department.name if user.department else '未分配' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="createFeedback()">建立</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    function viewTaskDetails(taskId) {
+        // 實現查看任務詳情的功能
+        console.log('View task details:', taskId);
+    }
+
+    function editTask(taskId) {
+        // 實現編輯任務的功能
+        console.log('Edit task:', taskId);
+    }
+
+    function deleteTask(taskId) {
+        if (confirm('確定要刪除這個任務嗎？')) {
+            // 實現刪除任務的功能
+            console.log('Delete task:', taskId);
+        }
+    }
+
+    function saveTask() {
+        const form = document.getElementById('taskForm');
+        const formData = new FormData(form);
+        const data = {
+            evaluator_id: formData.get('evaluator_id'),
+            target_id: formData.get('target_id')
+        };
+
+        fetch('/admin/feedback/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('儲存任務時發生錯誤，請稍後再試');
+        });
+    }
+
+    function createFeedback() {
+        const formData = {
+            evaluator_id: document.getElementById('evaluator_id').value,
+            target_id: document.getElementById('target_id').value
+        };
+        
+        if (!formData.evaluator_id || !formData.target_id) {
+            alert('請選擇評分者和被評者');
+            return;
+        }
+        
+        if (formData.evaluator_id === formData.target_id) {
+            alert('評分者和被評者不能是同一人');
+            return;
+        }
+        
+        fetch('/admin/feedback/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || '建立失敗');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('建立失敗');
+        });
+    }
+</script>
+{% endblock %}
+{% endblock %} 

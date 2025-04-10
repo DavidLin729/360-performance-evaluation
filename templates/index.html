@@ -190,9 +190,6 @@
                 <div class="company-name">C&D管理顧問股份有限公司</div>
             </div>
             <div class="nav-links">
-                {% if User.query.get(session['user_id']).is_admin %}
-                    <a href="{{ url_for('admin_dashboard') }}">管理後台</a>
-                {% endif %}
                 <a href="{{ url_for('logout') }}">登出</a>
             </div>
         </div>

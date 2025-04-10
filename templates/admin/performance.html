@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% from "admin/components/navigation.html" import admin_navigation %}
+
+{% block content %}
+<div class="container mt-4">
+    {{ admin_navigation() }}
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">績效管理</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">部門績效比較</h6>
+                                    <canvas id="departmentChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">績效趨勢分析</h6>
+                                    <canvas id="performanceTrendChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>員工</th>
+                                    <th>部門</th>
+                                    <th>職位</th>
+                                    <th>績效評分</th>
+                                    <th>趨勢</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in data.users %}
+                                <tr>
+                                    <td>{{ user.full_name }}</td>
+                                    <td>{{ user.department.name if user.department else '未分配' }}</td>
+                                    <td>{{ user.position }}</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" style="width: 75%">75%</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="text-success">
+                                            <i class="fas fa-arrow-up"></i> 上升
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info">查看詳情</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    // 部門績效比較圖表
+    const departmentCtx = document.getElementById('departmentChart').getContext('2d');
+    new Chart(departmentCtx, {
+        type: 'bar',
+        data: {
+            labels: ['研發部', '行銷部', '人資部', '財務部'],
+            datasets: [{
+                label: '平均績效分數',
+                data: [85, 78, 82, 75],
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+
+    // 績效趨勢圖表
+    const trendCtx = document.getElementById('performanceTrendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+            datasets: [{
+                label: '整體績效趨勢',
+                data: [75, 78, 82, 85],
+                fill: false,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 

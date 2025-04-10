@@ -1,0 +1,36 @@
+{% macro admin_navigation() %}
+<div class="admin-nav mb-4">
+    <div class="row g-3">
+        <div class="col-md-2">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary w-100">
+                <i class="fas fa-tachometer-alt"></i> 儀表板
+            </a>
+        </div>
+        <div class="col-md-2">
+            <a href="{{ url_for('performance_management') }}" class="btn btn-outline-primary w-100">
+                <i class="fas fa-chart-line"></i> 績效管理
+            </a>
+        </div>
+        <div class="col-md-2">
+            <a href="{{ url_for('goal_management') }}" class="btn btn-outline-primary w-100">
+                <i class="fas fa-bullseye"></i> 目標管理
+            </a>
+        </div>
+        <div class="col-md-2">
+            <a href="{{ url_for('feedback_management') }}" class="btn btn-outline-primary w-100">
+                <i class="fas fa-tasks"></i> 360問卷任務
+            </a>
+        </div>
+        <div class="col-md-2">
+            <a href="{{ url_for('feedback_analysis') }}" class="btn btn-outline-primary w-100">
+                <i class="fas fa-chart-bar"></i> 360問卷分析
+            </a>
+        </div>
+        <div class="col-md-2">
+            <a href="{{ url_for('user_management') }}" class="btn btn-outline-primary w-100">
+                <i class="fas fa-users"></i> 使用者管理
+            </a>
+        </div>
+    </div>
+</div>
+{% endmacro %} 

@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+{% from "admin/components/navigation.html" import admin_navigation %}
+
+{% block content %}
+<div class="container mt-4">
+    {{ admin_navigation() }}
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">目標管理</h5>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addGoalModal">
+                        <i class="fas fa-plus"></i> 新增目標
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- 目標進度概覽 -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">總目標數</h6>
+                                    <h3 class="mb-0">{{ total_goals }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">已完成目標</h6>
+                                    <h3 class="mb-0">{{ completed_goals }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">進行中目標</h6>
+                                    <h3 class="mb-0">{{ in_progress_goals }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">逾期目標</h6>
+                                    <h3 class="mb-0">{{ overdue_goals }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 目標列表 -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>目標名稱</th>
+                                    <th>負責人</th>
+                                    <th>部門</th>
+                                    <th>開始日期</th>
+                                    <th>結束日期</th>
+                                    <th>進度</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for goal in goals %}
+                                <tr>
+                                    <td>{{ goal.name }}</td>
+                                    <td>{{ goal.owner.full_name if goal.owner else '未指定' }}</td>
+                                    <td>{{ goal.department.name if goal.department else '未指定' }}</td>
+                                    <td>{{ goal.start_date.strftime('%Y-%m-%d') if goal.start_date else '未設定' }}</td>
+                                    <td>{{ goal.end_date.strftime('%Y-%m-%d') if goal.end_date else '未設定' }}</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: {{ goal.progress }}%;" 
+                                                 aria-valuenow="{{ goal.progress }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                {{ goal.progress }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if goal.status == '已完成' else 'warning' if goal.status == '進行中' else 'danger' }}">
+                                            {{ goal.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="viewGoal({{ goal.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-warning" onclick="editGoal({{ goal.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteGoal({{ goal.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增目標Modal -->
+<div class="modal fade" id="addGoalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增目標</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="goalForm">
+                    <div class="mb-3">
+                        <label class="form-label">目標名稱</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">負責人</label>
+                        <select class="form-control" name="owner_id" required>
+                            <option value="">請選擇</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">部門</label>
+                        <select class="form-control" name="department_id">
+                            <option value="">請選擇</option>
+                            {% for department in departments %}
+                            <option value="{{ department.id }}">{{ department.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">開始日期</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">結束日期</label>
+                                <input type="date" class="form-control" name="end_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">進度 (%)</label>
+                        <input type="number" class="form-control" name="progress" min="0" max="100" value="0">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveGoal()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewGoal(goalId) {
+    fetch(`/admin/goals/${goalId}`)
+        .then(response => response.json())
+        .then(goal => {
+            // 創建一個臨時的 modal 來顯示目標詳情
+            const modalHtml = `
+                <div class="modal fade" id="viewGoalModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">目標詳情</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="fw-bold">目標名稱：</label>
+                                    <p>${goal.name}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">描述：</label>
+                                    <p>${goal.description || '無'}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">開始日期：</label>
+                                    <p>${goal.start_date}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">結束日期：</label>
+                                    <p>${goal.end_date}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">進度：</label>
+                                    <div class="progress">
+                                        <div class="progress-bar" role="progressbar" 
+                                             style="width: ${goal.progress}%;" 
+                                             aria-valuenow="${goal.progress}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            ${goal.progress}%
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">狀態：</label>
+                                    <span class="badge bg-${goal.status === '已完成' ? 'success' : goal.status === '進行中' ? 'warning' : 'danger'}">
+                                        ${goal.status}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 移除舊的 modal（如果存在）
+            const oldModal = document.getElementById('viewGoalModal');
+            if (oldModal) {
+                oldModal.remove();
+            }
+            
+            // 添加新的 modal 到頁面
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // 顯示 modal
+            const modal = new bootstrap.Modal(document.getElementById('viewGoalModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('獲取目標詳情失敗，請稍後再試');
+        });
+}
+
+function editGoal(goalId) {
+    fetch(`/admin/goals/${goalId}`)
+        .then(response => response.json())
+        .then(goal => {
+            // 填充表單數據
+            const form = document.getElementById('goalForm');
+            form.querySelector('[name="name"]').value = goal.name;
+            form.querySelector('[name="description"]').value = goal.description || '';
+            form.querySelector('[name="owner_id"]').value = goal.owner_id;
+            form.querySelector('[name="department_id"]').value = goal.department_id;
+            form.querySelector('[name="start_date"]').value = goal.start_date;
+            form.querySelector('[name="end_date"]').value = goal.end_date;
+            form.querySelector('[name="progress"]').value = goal.progress;
+            
+            // 修改保存按鈕的點擊事件
+            const saveButton = document.querySelector('#addGoalModal .btn-primary');
+            saveButton.onclick = () => updateGoal(goalId);
+            
+            // 顯示 modal
+            const modal = new bootstrap.Modal(document.getElementById('addGoalModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('獲取目標詳情失敗，請稍後再試');
+        });
+}
+
+function updateGoal(goalId) {
+    const form = document.getElementById('goalForm');
+    const formData = new FormData(form);
+    
+    fetch(`/admin/goals/${goalId}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('更新失敗：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('更新失敗，請稍後再試');
+    });
+}
+
+function deleteGoal(goalId) {
+    if (confirm('確定要刪除這個目標嗎？')) {
+        fetch(`/admin/goals/${goalId}/delete`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('刪除失敗：' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('刪除失敗，請稍後再試');
+        });
+    }
+}
+
+function saveGoal() {
+    const form = document.getElementById('goalForm');
+    const formData = new FormData(form);
+    
+    fetch('/admin/goals/create', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('保存失敗：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('保存失敗，請稍後再試');
+    });
+}
+</script>
+{% endblock %} 

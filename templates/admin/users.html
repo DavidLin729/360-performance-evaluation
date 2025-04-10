@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+{% from "admin/components/navigation.html" import admin_navigation %}
+
+{% block content %}
+<div class="container mt-4">
+    {{ admin_navigation() }}
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>使用者管理</h2>
+        <div>
+            <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#batchModal">
+                <i class="bi bi-download"></i> 批次下載/上傳
+            </button>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <i class="bi bi-plus-lg"></i> 新增使用者
+            </button>
+        </div>
+    </div>
+
+    <!-- 批次下載/上傳模態視窗 -->
+    <div class="modal fade" id="batchModal" tabindex="-1" aria-labelledby="batchModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="batchModalLabel">批次下載/上傳</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-grid gap-3">
+                        <a href="{{ url_for('download_user_template') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-download"></i> 下載使用者範本
+                        </a>
+                        <form id="uploadForm" action="{{ url_for('upload_users') }}" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="userFile" class="form-label">上傳使用者檔案</label>
+                                <input class="form-control" type="file" id="userFile" name="file" accept=".xlsx,.xls">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-upload"></i> 上傳
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 統計卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">總使用者數</h5>
+                    <p class="card-text display-6">{{ data.total_users }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">啟用帳號</h5>
+                    <p class="card-text display-6">{{ data.active_users }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">停用帳號</h5>
+                    <p class="card-text display-6">{{ data.inactive_users }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">管理員</h5>
+                    <p class="card-text display-6">{{ data.admin_users }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜尋表單 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">搜尋</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           placeholder="搜尋使用者名稱、電子郵件或姓名" value="{{ search_query }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="department" class="form-label">部門</label>
+                    <select class="form-select" id="department" name="department">
+                        <option value="">所有部門</option>
+                        {% for dept in data.departments %}
+                        <option value="{{ dept.id }}" {% if selected_department|string == dept.id|string %}selected{% endif %}>
+                            {{ dept.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="role" class="form-label">角色</label>
+                    <select class="form-select" id="role" name="role">
+                        <option value="">所有角色</option>
+                        <option value="admin" {% if selected_role == 'admin' %}selected{% endif %}>管理員</option>
+                        <option value="user" {% if selected_role == 'user' %}selected{% endif %}>一般使用者</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">搜尋</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 使用者列表 -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>使用者名稱</th>
+                            <th>姓名</th>
+                            <th>電子郵件</th>
+                            <th>部門</th>
+                            <th>角色</th>
+                            <th>狀態</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in data.users %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.full_name }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.department.name if user.department else '未分配' }}</td>
+                            <td>
+                                {% if user.is_admin %}
+                                <span class="badge bg-primary">管理員</span>
+                                {% else %}
+                                <span class="badge bg-secondary">一般使用者</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.is_active %}
+                                <span class="badge bg-success">啟用</span>
+                                {% else %}
+                                <span class="badge bg-danger">停用</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-primary btn-sm me-1" onclick="editUser({{ user.id }})">
+                                    <i class="bi bi-pencil"></i> 編輯
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteUser({{ user.id }})">
+                                    <i class="bi bi-trash"></i> 刪除
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增使用者模態視窗 -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">新增使用者</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">使用者名稱</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">姓名</label>
+                        <input type="text" class="form-control" id="full_name" name="full_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">電子郵件</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">密碼</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="department" class="form-label">部門</label>
+                        <select class="form-select" id="department" name="department_id">
+                            <option value="">選擇部門</option>
+                            {% for dept in data.departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_admin" name="is_admin">
+                            <label class="form-check-label" for="is_admin">
+                                管理員權限
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveUser()">儲存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 編輯使用者模態視窗 -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUserModalLabel">編輯使用者</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="edit_user_id" name="user_id">
+                    <div class="mb-3">
+                        <label for="edit_username" class="form-label">使用者名稱</label>
+                        <input type="text" class="form-control" id="edit_username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_full_name" class="form-label">姓名</label>
+                        <input type="text" class="form-control" id="edit_full_name" name="full_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_email" class="form-label">電子郵件</label>
+                        <input type="email" class="form-control" id="edit_email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_department" class="form-label">部門</label>
+                        <select class="form-select" id="edit_department" name="department_id">
+                            <option value="">選擇部門</option>
+                            {% for dept in data.departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="edit_is_admin" name="is_admin">
+                            <label class="form-check-label" for="edit_is_admin">
+                                管理員權限
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="edit_is_active" name="is_active">
+                            <label class="form-check-label" for="edit_is_active">
+                                啟用帳號
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="updateUser()">儲存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 刪除確認模態視窗 -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteUserModalLabel">確認刪除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                確定要刪除這個使用者嗎？此操作無法復原。
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">刪除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+let currentUserId = null;
+
+function editUser(userId) {
+    fetch(`/admin/users/${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const user = data.user;
+                document.getElementById('edit_user_id').value = user.id;
+                document.getElementById('edit_username').value = user.username;
+                document.getElementById('edit_full_name').value = user.full_name;
+                document.getElementById('edit_email').value = user.email;
+                document.getElementById('edit_department').value = user.department_id;
+                document.getElementById('edit_is_admin').checked = user.is_admin;
+                document.getElementById('edit_is_active').checked = user.is_active;
+                
+                const editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+                editModal.show();
+            } else {
+                alert('獲取使用者資料失敗：' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('獲取使用者資料失敗：請檢查網路連線');
+        });
+}
+
+function updateUser() {
+    const userId = document.getElementById('edit_user_id').value;
+    const formData = new FormData(document.getElementById('editUserForm'));
+    
+    fetch(`/admin/users/${userId}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || '更新失敗');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('更新失敗：請檢查網路連線');
+    });
+}
+
+function deleteUser(userId) {
+    currentUserId = userId;
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+    deleteModal.show();
+}
+
+function confirmDelete() {
+    if (!currentUserId) return;
+    
+    fetch(`/admin/users/${currentUserId}/delete`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || '刪除失敗');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('刪除失敗');
+    });
+}
+
+function saveUser() {
+    const formData = new FormData(document.getElementById('addUserForm'));
+    const data = Object.fromEntries(formData.entries());
+    
+    fetch('/admin/users/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || '新增失敗');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('新增失敗');
+    });
+}
+
+// 處理檔案上傳
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch('/admin/users/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('上傳成功');
+            location.reload();
+        } else {
+            alert(data.message || '上傳失敗');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('上傳失敗');
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 
