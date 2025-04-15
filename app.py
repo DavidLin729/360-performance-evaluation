@@ -410,100 +410,144 @@ def feedback_analysis():
         'pending': pending
     }
     
+    # 初始化所有必要的變數
+    dimension_labels = []
+    dimension_scores = []
+    detailed_stats = []
+    scatter_plot_data = {
+        'labels': [],
+        'datasets': [{
+            'label': '評分分佈',
+            'data': [],
+            'backgroundColor': 'rgba(75, 192, 192, 0.6)',
+            'borderColor': 'rgba(75, 192, 192, 1)',
+            'borderWidth': 1
+        }]
+    }
+    personal_analysis = None
+    
+    # 維度名稱映射
+    dimension_mapping = {
+        '工作能力': ['work_quality', 'work_efficiency', 'work_reliability'],
+        '領導力': ['leadership', 'decision_making', 'team_management'],
+        '團隊合作': ['collaboration', 'interpersonal_skills', 'conflict_resolution'],
+        '溝通能力': ['communication_skills', 'presentation_skills', 'listening_skills'],
+        '專業知識': ['technical_knowledge', 'industry_knowledge', 'problem_solving'],
+        '工作態度': ['work_attitude', 'initiative', 'responsibility'],
+        '創新思維': ['innovation', 'creativity', 'adaptability'],
+        '問題解決': ['analytical_thinking', 'solution_implementation', 'risk_management']
+    }
+    
     # 根據選擇的分析類型準備數據
     if selected_analysis_type == 'overall':
         # 整體分析
         completed_feedbacks = [f for f in feedback_tasks if f.status == 'completed']
         
-        # 計算各維度的平均分數
-        dimension_scores = {
-            '工作能力': {
-                'work_quality': [],
-                'work_efficiency': [],
-                'work_reliability': []
-            },
-            '領導力': {
-                'leadership': [],
-                'decision_making': [],
-                'team_management': []
-            },
-            '團隊合作': {
-                'collaboration': [],
-                'interpersonal_skills': [],
-                'conflict_resolution': []
-            },
-            '溝通能力': {
-                'communication_skills': [],
-                'presentation_skills': [],
-                'listening_skills': []
-            },
-            '專業知識': {
-                'technical_knowledge': [],
-                'industry_knowledge': [],
-                'problem_solving': []
-            },
-            '工作態度': {
-                'work_attitude': [],
-                'initiative': [],
-                'responsibility': []
-            },
-            '創新思維': {
-                'innovation': [],
-                'creativity': [],
-                'adaptability': []
-            },
-            '問題解決': {
-                'analytical_thinking': [],
-                'solution_implementation': [],
-                'risk_management': []
+        if completed_feedbacks:
+            # 計算各維度的平均分數
+            dimension_scores = {
+                '工作能力': {
+                    'work_quality': [],
+                    'work_efficiency': [],
+                    'work_reliability': []
+                },
+                '領導力': {
+                    'leadership': [],
+                    'decision_making': [],
+                    'team_management': []
+                },
+                '團隊合作': {
+                    'collaboration': [],
+                    'interpersonal_skills': [],
+                    'conflict_resolution': []
+                },
+                '溝通能力': {
+                    'communication_skills': [],
+                    'presentation_skills': [],
+                    'listening_skills': []
+                },
+                '專業知識': {
+                    'technical_knowledge': [],
+                    'industry_knowledge': [],
+                    'problem_solving': []
+                },
+                '工作態度': {
+                    'work_attitude': [],
+                    'initiative': [],
+                    'responsibility': []
+                },
+                '創新思維': {
+                    'innovation': [],
+                    'creativity': [],
+                    'adaptability': []
+                },
+                '問題解決': {
+                    'analytical_thinking': [],
+                    'solution_implementation': [],
+                    'risk_management': []
+                }
             }
-        }
-        
-        # 收集所有分數
-        for feedback in completed_feedbacks:
-            for dimension, metrics in dimension_scores.items():
-                for metric in metrics:
-                    score = getattr(feedback, metric)
-                    if score is not None:
-                        metrics[metric].append(score)
-        
-        # 計算各維度的統計數據
-        detailed_stats = []
-        for dimension, metrics in dimension_scores.items():
-            all_scores = []
-            for metric_scores in metrics.values():
-                all_scores.extend(metric_scores)
             
-            if all_scores:
-                avg = sum(all_scores) / len(all_scores)
-                max_score = max(all_scores)
-                min_score = min(all_scores)
-                std_dev = (sum((x - avg) ** 2 for x in all_scores) / len(all_scores)) ** 0.5
+            # 收集所有分數
+            for feedback in completed_feedbacks:
+                for dimension, metrics in dimension_scores.items():
+                    for metric in metrics:
+                        score = getattr(feedback, metric)
+                        if score is not None:
+                            metrics[metric].append(score)
+            
+            # 計算各維度的統計數據
+            detailed_stats = []
+            for dimension, metrics in dimension_scores.items():
+                all_scores = []
+                for metric_scores in metrics.values():
+                    all_scores.extend(metric_scores)
                 
-                detailed_stats.append({
-                    'name': dimension,
-                    'average': round(avg, 2),
-                    'max': max_score,
-                    'min': min_score,
-                    'std_dev': round(std_dev, 2),
-                    'sample_size': len(all_scores)
-                })
-        
-        # 準備圖表數據
-        dimension_labels = [stat['name'] for stat in detailed_stats]
-        dimension_scores = [stat['average'] for stat in detailed_stats]
-        
-        return render_template('admin/feedback_analysis.html',
-                             departments=departments,
-                             users=users,
-                             selected_analysis_type=selected_analysis_type,
-                             selected_time_range=selected_time_range,
-                             selected_department=selected_department,
-                             selected_user=selected_user,
-                             completion_rate=completion_rate,
-                             dimension_labels=dimension_labels,
-                             dimension_scores=dimension_scores,
-                             detailed_stats=detailed_stats)
+                if all_scores:
+                    avg = sum(all_scores) / len(all_scores)
+                    max_score = max(all_scores)
+                    min_score = min(all_scores)
+                    std_dev = (sum((x - avg) ** 2 for x in all_scores) / len(all_scores)) ** 0.5
+                    
+                    detailed_stats.append({
+                        'name': dimension,
+                        'average': round(avg, 2),
+                        'max': max_score,
+                        'min': min_score,
+                        'std_dev': round(std_dev, 2),
+                        'sample_size': len(all_scores),
+                        'trend': all_scores
+                    })
+            
+            # 準備圖表數據
+            dimension_labels = list(dimension_mapping.keys())
+            dimension_scores = []
+            for dimension in dimension_labels:
+                scores = []
+                for feedback in completed_feedbacks:
+                    # 獲取該維度下的所有分數
+                    dimension_scores_list = []
+                    for metric in dimension_mapping[dimension]:
+                        score = getattr(feedback, metric)
+                        if score is not None and isinstance(score, (int, float)):
+                            dimension_scores_list.append(score)
+                    if dimension_scores_list:  # 只添加有有效分數的維度
+                        scores.append(sum(dimension_scores_list) / len(dimension_scores_list))
+                if scores:  # 只添加有有效分數的維度
+                    dimension_scores.append(sum(scores) / len(scores))
+                else:
+                    dimension_scores.append(0)  # 如果沒有有效分數，使用0作為預設值
+            
+            scatter_plot_data = {
+                'labels': dimension_labels,
+                'datasets': [{
+                    'label': '評分分佈',
+                    'data': [{'x': i, 'y': score} for i, score in enumerate(dimension_scores)],
+                    'backgroundColor': 'rgba(75, 192, 192, 0.6)',
+                    'borderColor': 'rgba(75, 192, 192, 1)',
+                    'borderWidth': 1
+                }]
+            }
     
     elif selected_analysis_type == 'personal' and selected_user:
         # 個人分析
@@ -589,18 +633,29 @@ def feedback_analysis():
                             'max': max_score,
                             'min': min_score,
                             'std_dev': round(std_dev, 2),
-                            'sample_size': len(all_scores)
+                            'sample_size': len(all_scores),
+                            'trend': all_scores
                         }
                 
-                return render_template('admin/feedback_analysis.html',
-                                     departments=departments,
-                                     users=users,
-                                     selected_analysis_type=selected_analysis_type,
-                                     selected_time_range=selected_time_range,
-                                     selected_department=selected_department,
-                                     selected_user=selected_user,
-                                     completion_rate=completion_rate,
-                                     personal_analysis=personal_analysis)
+                # 準備圖表數據
+                dimension_labels = list(dimension_mapping.keys())
+                dimension_scores = []
+                for dimension in dimension_labels:
+                    if dimension in personal_analysis['average_scores']:
+                        dimension_scores.append(personal_analysis['average_scores'][dimension]['average'])
+                    else:
+                        dimension_scores.append(0)
+                
+                scatter_plot_data = {
+                    'labels': dimension_labels,
+                    'datasets': [{
+                        'label': '評分分佈',
+                        'data': [{'x': i, 'y': score} for i, score in enumerate(dimension_scores)],
+                        'backgroundColor': 'rgba(75, 192, 192, 0.6)',
+                        'borderColor': 'rgba(75, 192, 192, 1)',
+                        'borderWidth': 1
+                    }]
+                }
     
     return render_template('admin/feedback_analysis.html',
                          departments=departments,
@@ -609,7 +664,12 @@ def feedback_analysis():
                          selected_time_range=selected_time_range,
                          selected_department=selected_department,
                          selected_user=selected_user,
-                         completion_rate=completion_rate)
+                         completion_rate=completion_rate,
+                         dimension_labels=dimension_labels,
+                         dimension_scores=dimension_scores,
+                         detailed_stats=detailed_stats,
+                         scatter_plot_data=scatter_plot_data,
+                         personal_analysis=personal_analysis)
 
 @app.route('/admin/users')
 @login_required

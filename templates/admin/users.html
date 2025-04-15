@@ -154,6 +154,9 @@
                                 {% endif %}
                             </td>
                             <td>
+                                <button type="button" class="btn btn-info btn-sm me-1" onclick="viewFeedback({{ user.id }})">
+                                    <i class="bi bi-eye"></i> 查看
+                                </button>
                                 <button type="button" class="btn btn-primary btn-sm me-1" onclick="editUser({{ user.id }})">
                                     <i class="bi bi-pencil"></i> 編輯
                                 </button>
@@ -179,7 +182,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="addUserForm">
+                <form id="addUserForm" action="{{ url_for('create_user') }}" method="POST">
                     <div class="mb-3">
                         <label for="username" class="form-label">使用者名稱</label>
                         <input type="text" class="form-control" id="username" name="username" required>
@@ -198,7 +201,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="department" class="form-label">部門</label>
-                        <select class="form-select" id="department" name="department_id">
+                        <select class="form-select" id="department" name="department_id" required>
                             <option value="">選擇部門</option>
                             {% for dept in data.departments %}
                             <option value="{{ dept.id }}">{{ dept.name }}</option>
@@ -304,6 +307,10 @@
 <script>
 let currentUserId = null;
 
+function viewFeedback(userId) {
+    window.location.href = `/admin/feedback?user_id=${userId}`;
+}
+
 function editUser(userId) {
     fetch(`/admin/users/${userId}`)
         .then(response => response.json())
@@ -380,14 +387,10 @@ function confirmDelete() {
 
 function saveUser() {
     const formData = new FormData(document.getElementById('addUserForm'));
-    const data = Object.fromEntries(formData.entries());
     
     fetch('/admin/users/create', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
@@ -399,7 +402,7 @@ function saveUser() {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('新增失敗');
+        alert('新增失敗：' + error.message);
     });
 }
 

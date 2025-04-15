@@ -206,25 +206,42 @@ document.addEventListener('DOMContentLoaded', function() {
     new Chart(trendCtx{{ loop.index }}, {
         type: 'line',
         data: {
-            labels: ['趨勢'],
+            labels: Array.from({length: {{ stat.trend|length }}}, (_, i) => i + 1),
             datasets: [{
-                label: '{{ stat.name }}',
+                label: '{{ stat.name }}分數趨勢',
                 data: {{ stat.trend|tojson }},
                 borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1,
-                pointRadius: 0
+                borderWidth: 2,
+                tension: 0.4,
+                fill: false
             }]
         },
         options: {
+            responsive: true,
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 5
+                    max: 5,
+                    title: {
+                        display: true,
+                        text: '分數'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: '評估次數'
+                    }
                 }
             },
             plugins: {
                 legend: {
-                    display: false
+                    display: true,
+                    position: 'top'
+                },
+                title: {
+                    display: true,
+                    text: '{{ stat.name }}維度評分趨勢'
                 }
             }
         }

@@ -207,12 +207,12 @@
         </div>
 
         <div class="form-container">
+            <form method="POST" action="{{ url_for('fill_feedback', task_id=task.id) }}">
             <div class="form-header">
-                <h2>評估對象：{{ User.query.get(feedback.target_id).username }}</h2>
-                <p class="help-text">請根據以下各項指標，對受評者進行1-5分的評分（1分最低，5分最高）</p>
-            </div>
+                    <h2>績效評估表單</h2>
+                    <p>評估對象：{{ task.target.full_name }}</p>
+                </div>
 
-            <form method="POST">
                 <!-- 工作能力評估 -->
                 <div class="section">
                     <h3 class="section-title">工作能力評估</h3>
@@ -707,7 +707,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+            </div>
 
                 <!-- 文字回饋 -->
                 <div class="section">
@@ -720,7 +720,7 @@
                         <label>需要改進的地方</label>
                         <textarea name="improvements" placeholder="請描述受評者需要改進的地方..."></textarea>
                     </div>
-                    <div class="form-group">
+                <div class="form-group">
                         <label>建議</label>
                         <textarea name="suggestions" placeholder="請提供具體的改進建議..."></textarea>
                     </div>
