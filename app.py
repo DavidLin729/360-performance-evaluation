@@ -231,65 +231,50 @@ def login():
 @login_required
 def logout():
     logout_user()
+    flash('您已成功登出', 'success')
     return redirect(url_for('login'))
 
-@app.route('/feedback/<int:feedback_id>', methods=['GET', 'POST'])
-def feedback(feedback_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    feedback = Feedback.query.get_or_404(feedback_id)
+@app.route('/feedback/<int:task_id>/fill', methods=['GET', 'POST'])
+@login_required
+def fill_feedback(task_id):
+    # 獲取問卷任務
+    task = Feedback.query.get_or_404(task_id)
+    
+    # 檢查權限
+    if task.evaluator_id != current_user.id:
+        flash('您沒有權限填寫此問卷', 'danger')
+        return redirect(url_for('home'))
+    
+    # 如果是 POST 請求，處理表單提交
     if request.method == 'POST':
-        # 工作能力評估
-        feedback.work_quality = int(request.form['work_quality'])
-        feedback.work_efficiency = int(request.form['work_efficiency'])
-        feedback.work_reliability = int(request.form['work_reliability'])
-        
-        # 領導力評估
-        feedback.leadership = int(request.form['leadership'])
-        feedback.decision_making = int(request.form['decision_making'])
-        feedback.team_management = int(request.form['team_management'])
-        
-        # 團隊合作
-        feedback.collaboration = int(request.form['collaboration'])
-        feedback.interpersonal_skills = int(request.form['interpersonal_skills'])
-        feedback.conflict_resolution = int(request.form['conflict_resolution'])
-        
-        # 溝通能力
-        feedback.communication_skills = int(request.form['communication_skills'])
-        feedback.presentation_skills = int(request.form['presentation_skills'])
-        feedback.listening_skills = int(request.form['listening_skills'])
-        
-        # 專業知識
-        feedback.technical_knowledge = int(request.form['technical_knowledge'])
-        feedback.industry_knowledge = int(request.form['industry_knowledge'])
-        feedback.problem_solving = int(request.form['problem_solving'])
-        
-        # 工作態度
-        feedback.work_attitude = int(request.form['work_attitude'])
-        feedback.initiative = int(request.form['initiative'])
-        feedback.responsibility = int(request.form['responsibility'])
-        
-        # 創新思維
-        feedback.innovation = int(request.form['innovation'])
-        feedback.creativity = int(request.form['creativity'])
-        feedback.adaptability = int(request.form['adaptability'])
-        
-        # 問題解決能力
-        feedback.analytical_thinking = int(request.form['analytical_thinking'])
-        feedback.solution_implementation = int(request.form['solution_implementation'])
-        feedback.risk_management = int(request.form['risk_management'])
-        
-        # 文字回饋
-        feedback.strengths = request.form['strengths']
-        feedback.improvements = request.form['improvements']
-        feedback.suggestions = request.form['suggestions']
-        
-        feedback.status = 'completed'
-        feedback.completed_at = datetime.utcnow()
-        db.session.commit()
-        flash('評估表單已成功提交')
-        return redirect(url_for('index'))
-    return render_template('feedback_form.html', feedback=feedback, User=User)
+        try:
+            # 更新問卷資料
+            for field in request.form:
+                if hasattr(task, field) and field not in ['csrf_token']:
+                    value = request.form.get(field)
+                    if value:
+                        if field in ['strengths', 'improvements', 'suggestions']:
+                            setattr(task, field, value)
+                        else:
+                            setattr(task, field, int(value))
+            
+            # 更新狀態
+            task.status = 'completed'
+            task.completed_at = datetime.utcnow()
+            
+            # 儲存到資料庫
+            db.session.commit()
+            
+            flash('問卷已成功提交', 'success')
+            return redirect(url_for('home'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'提交問卷時發生錯誤：{str(e)}', 'danger')
+            return render_template('feedback_form.html', task=task)
+    
+    # GET 請求，顯示問卷表單
+    return render_template('feedback_form.html', task=task)
 
 # 管理者路由
 @app.route('/admin/dashboard')
@@ -674,15 +659,29 @@ def user_management():
 @admin_required
 def create_user():
     try:
-        data = request.form
-        
+        # 檢查請求內容類型
+        if not request.is_json and not request.form:
+            return jsonify({'success': False, 'message': '無效的請求格式'}), 400
+
+        # 獲取數據（支援both JSON和form-data）
+        data = request.get_json() if request.is_json else request.form
+
+        # 驗證必要欄位
+        required_fields = ['username', 'full_name', 'email', 'password', 'department_id']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        if missing_fields:
+            return jsonify({
+                'success': False, 
+                'message': f'缺少必要欄位：{", ".join(missing_fields)}'
+            }), 400
+
         # 檢查使用者名稱是否已存在
         if User.query.filter_by(username=data['username']).first():
-            return jsonify({'success': False, 'message': '使用者名稱已存在'})
+            return jsonify({'success': False, 'message': '使用者名稱已存在'}), 400
         
         # 檢查電子郵件是否已存在
         if User.query.filter_by(email=data['email']).first():
-            return jsonify({'success': False, 'message': '電子郵件已存在'})
+            return jsonify({'success': False, 'message': '電子郵件已存在'}), 400
         
         # 建立新使用者
         user = User(
@@ -697,11 +696,23 @@ def create_user():
         db.session.add(user)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': '使用者建立成功'})
+        return jsonify({
+            'success': True, 
+            'message': '使用者建立成功',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'full_name': user.full_name,
+                'email': user.email
+            }
+        })
         
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'資料格式錯誤：{str(e)}'}), 400
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'建立使用者時發生錯誤：{str(e)}'})
+        return jsonify({'success': False, 'message': f'建立使用者時發生錯誤：{str(e)}'}), 500
 
 @app.route('/admin/users/<int:user_id>/edit', methods=['POST'])
 @login_required
@@ -714,15 +725,15 @@ def update_user(user_id):
         # 檢查使用者名稱是否已被其他使用者使用
         if data['username'] != user.username:
             existing_user = User.query.filter_by(username=data['username']).first()
-            if existing_user and existing_user.id != user.id:
+            if existing_user and existing_user.id != user_id:
                 return jsonify({'success': False, 'message': '使用者名稱已存在'})
-        
+
         # 檢查電子郵件是否已被其他使用者使用
         if data['email'] != user.email:
-            existing_email = User.query.filter_by(email=data['email']).first()
-            if existing_email and existing_email.id != user.id:
+            existing_user = User.query.filter_by(email=data['email']).first()
+            if existing_user and existing_user.id != user_id:
                 return jsonify({'success': False, 'message': '電子郵件已存在'})
-        
+
         # 更新使用者資料
         user.username = data['username']
         user.full_name = data['full_name']
@@ -730,14 +741,17 @@ def update_user(user_id):
         user.department_id = int(data['department_id'])
         user.is_admin = data.get('is_admin') == 'on'
         user.is_active = data.get('is_active') == 'on'
-        
+
+        # 如果密碼欄位有值，則更新密碼
+        if data.get('password'):
+            user.set_password(data['password'])
+
         db.session.commit()
-        return jsonify({'success': True, 'message': '使用者資料已更新'})
-        
+        return jsonify({'success': True, 'message': '使用者更新成功'})
+
     except Exception as e:
         db.session.rollback()
-        print(f"更新使用者時發生錯誤：{str(e)}")  # 除錯用
-        return jsonify({'success': False, 'message': f'更新失敗：{str(e)}'})
+        return jsonify({'success': False, 'message': f'更新使用者時發生錯誤：{str(e)}'})
 
 @app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
 @login_required
@@ -1378,20 +1392,62 @@ def delete_goal(goal_id):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
+# 獲取任務資料
+@app.route('/admin/feedback/<int:task_id>', methods=['GET'])
+@login_required
+@admin_required
+def get_feedback_task(task_id):
+    try:
+        task = Feedback.query.get_or_404(task_id)
+        return jsonify({
+            'success': True,
+            'task': {
+                'id': task.id,
+                'title': task.title,
+                'target_id': task.target_id,
+                'evaluator_id': task.evaluator_id,
+                'start_date': task.start_date.strftime('%Y-%m-%d'),
+                'end_date': task.end_date.strftime('%Y-%m-%d'),
+                'description': task.description
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+# 刪除任務
+@app.route('/admin/feedback/<int:task_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_feedback_task(task_id):
+    try:
+        task = Feedback.query.get_or_404(task_id)
+        db.session.delete(task)
+        db.session.commit()
+        return jsonify({'success': True, 'message': '任務已成功刪除'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'刪除失敗：{str(e)}'})
+
 if __name__ == '__main__':
     with app.app_context():
-        # 檢查是否需要建立資料表
+        # 先建立所有資料表
+        db.create_all()
+        
+        # 檢查是否需要建立預設資料
         if not Department.query.first():
-            db.create_all()
-            
             # 建立預設管理員帳號
             admin = User.query.filter_by(username='admin').first()
             if not admin:
                 admin = User(
                     username='admin',
-                    password='admin123',
-                    is_admin=True
+                    is_admin=True,
+                    full_name='Administrator',
+                    email='admin@example.com',
+                    employee_id='EMP000',
+                    position='系統管理員',
+                    is_active=True
                 )
+                admin.set_password('admin123')
                 db.session.add(admin)
                 db.session.commit()
                 
@@ -1400,7 +1456,6 @@ if __name__ == '__main__':
             if not david:
                 david = User(
                     username='David',
-                    password='123456',
                     is_admin=True,
                     full_name='David',
                     email='david@example.com',
@@ -1408,6 +1463,7 @@ if __name__ == '__main__':
                     position='系統管理員',
                     is_active=True
                 )
+                david.set_password('123456')
                 db.session.add(david)
                 db.session.commit()
             
